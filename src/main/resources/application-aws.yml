@@ -1,0 +1,62 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      ssl:
+        enabled: true
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+  mail:
+    host: ${SES_SMTP_HOST:email-smtp.us-east-1.amazonaws.com}
+    port: 587
+    username: ${SES_SMTP_USERNAME}
+    password: ${SES_SMTP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+app:
+  jwt:
+    private-key: ${JWT_PRIVATE_KEY}
+    public-key: ${JWT_PUBLIC_KEY}
+  email:
+    from: ${EMAIL_FROM_ADDRESS:no-reply@currency-exchange.com}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  mfa:
+    bypass-emails: cartkn.kkdi@gmail.com
+
+transaction:
+  admin:
+    email: ${TRANSACTION_ADMIN_EMAIL:admin@currency-exchange.com}
+
+# EB sets SERVER_PORT=5000 via environment variable.
+# Spring Boot relaxed binding maps SERVER_PORT → server.port automatically,
+# but we declare it explicitly here to make it clear and override application.yml's 8080.
+server:
+  port: ${SERVER_PORT:5000}
+
+spring.main.banner-mode: "off"

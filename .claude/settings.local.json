@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs -I{} sh -c 'echo \"=== {} ===\"; ls \"C:/Users/175123/.m2/repository/org/apache/maven/surefire/{}/\"')",
+      "Bash(JAVA_HOME=\"C:/Program Files/OpenLogic/jdk-21.0.3.9-hotspot\" mvn test)",
+      "Read(//c//**)",
+      "Read(//mnt/**)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 10 \"https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.zip\")",
+      "PowerShell(mvn clean *)",
+      "PowerShell(Get-Content *)"
+    ]
+  }
+}

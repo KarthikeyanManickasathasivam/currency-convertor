@@ -1,0 +1,42 @@
+# Maven
+target/
+*.jar
+!*-sources.jar
+
+# Terraform — secrets must never be committed
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+terraform/*.pem
+terraform/*.key
+
+# JWT keys
+*.pem
+private.pem
+public.pem
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.*
+!.env.example

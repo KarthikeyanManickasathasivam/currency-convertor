@@ -1,0 +1,33 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# NEVER commit terraform.tfvars — it is in .gitignore.
+
+aws_region   = "ap-south-1"
+project_name = "xchange"
+environment  = "prod"
+
+# RDS
+db_username = "xchange_admin"
+db_password = "ReplaceWithStrongPassword123!"
+
+# SES — create SMTP credentials in AWS Console → SES → SMTP Settings
+ses_smtp_username = "AKIAIOSFODNN7EXAMPLE"
+ses_smtp_password = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+email_from_address      = "no-reply@yourdomain.com"
+transaction_admin_email = "admin@yourdomain.com"
+
+# JWT RSA keys — generate with:
+#   openssl genrsa -out private.pem 2048
+#   openssl rsa -in private.pem -pubout -out public.pem
+#   base64 -w 0 private.pem
+#   base64 -w 0 public.pem
+jwt_private_key = "LS0tLS1CRUdJTi..."   # base64-encoded private.pem
+jwt_public_key  = "LS0tLS1CRUdJTi..."   # base64-encoded public.pem
+
+# External APIs
+alpha_vantage_api_key = "YOUR_ALPHA_VANTAGE_KEY"
+
+# Lambda JAR — built by: mvn clean package -DskipTests
+lambda_jar_path = "../target/currency-exchange-1.0.0.jar"
+
+# Alerting
+alert_email = "ops@yourdomain.com"
