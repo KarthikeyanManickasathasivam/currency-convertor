@@ -9,14 +9,19 @@ Real-time currency conversion platform with MFA-secured authentication, live exc
 | Layer | Technology |
 |---|---|
 | Backend | Spring Boot 3.3.x · Spring Security 6 · Spring Data JPA |
-| Language | Java 17 |
-| Database | PostgreSQL 16 (Amazon RDS in production) |
-| Cache | Spring Cache — in-memory locally, Redis (ElastiCache) on AWS |
-| Auth | JWT RS256 · Email-based MFA (OTP) |
+| Language | Java 21 LTS (virtual threads, records, pattern matching) |
+| Database | PostgreSQL 16 (Amazon RDS Multi-AZ in production) |
+| Cache | Spring Cache — in-memory locally, Redis 7.x (ElastiCache) on AWS |
+| Auth | JWT RS256 · Email-based MFA (OTP via Amazon SES) |
 | Resilience | Resilience4j — circuit breaker, retry, rate limiter |
 | API Docs | SpringDoc OpenAPI 2 (Swagger UI) |
 | Frontend | Angular 18 · Angular Material · Tailwind CSS 3 |
 | Build | Maven 3.9 (backend) · Angular CLI 18 (frontend) |
+| Testing | JUnit 5 · Mockito · Testcontainers · Cypress |
+| Deployment (POC) | AWS Elastic Beanstalk — JAR upload, single-instance EC2, no Docker |
+| Deployment (Prod) | Amazon ECS Fargate — containerized, ALB, Blue/Green, auto-scaling |
+| CI/CD | AWS CodePipeline + CodeBuild |
+| Security | AWS WAF (CommonRuleSet, SQLi, KnownBadInputs + rate-limit) |
 | IaC | Terraform 1.7 |
 
 ---
@@ -39,7 +44,7 @@ Real-time currency conversion platform with MFA-secured authentication, live exc
 
 | Tool | Version | Notes |
 |---|---|---|
-| Java | 17 | Amazon Corretto 17 recommended |
+| Java | 21 | Amazon Corretto 21 recommended |
 | Maven | 3.9.x | `mvn -v` to check |
 | PostgreSQL | 16 | Running locally on `localhost:5432` |
 | Node.js | 20 LTS | Node 23 has peer-dep issues with Angular 18 |
@@ -76,7 +81,7 @@ Angular dev server starts on **http://localhost:4200**.
 
 ### Frontend-only mode (no Java needed)
 
-If Java 17 isn't installed yet, run the frontend against the built-in Express mock backend:
+If Java 21 isn't installed yet, run the frontend against the built-in Express mock backend:
 
 ```bash
 cd frontend
@@ -202,7 +207,7 @@ currency-convertor/
 │   │   └── shared/        Services, models, interceptors
 │   ├── mock/server.js     Express mock backend for frontend-only dev
 │   └── proxy.mock.json    Proxy config for mock mode
-├── terraform/             AWS infrastructure (Lambda, RDS, ElastiCache, SES)
+├── terraform/             AWS infrastructure (EB/ECS, RDS, ElastiCache, SES, CloudFront)
 ├── docs/                  Architecture, API contract, data model, requirements
 ├── prd.md                 Full developer guide
 └── progress.md            Implementation status tracker
@@ -226,14 +231,83 @@ cd frontend && ng test
 
 ## AWS Deployment
 
-See [`prd.md`](prd.md) for the full deployment guide. High-level steps:
+Two deployment paths are supported. The POC uses Elastic Beanstalk (no Docker, simplest path). Production targets ECS Fargate (containerized, auto-scaling, zero-downtime Blue/Green).
 
-1. Apply Terraform: `cd terraform && terraform apply`
-2. Capture RDS, ElastiCache, and SES endpoints from Terraform output
-3. Set Lambda environment variables (see Config section above)
-4. Build and deploy: `mvn package -Paws` → upload JAR to Lambda
-5. Configure API Gateway HTTP API → Lambda proxy integration
-6. Frontend: `cd frontend && npm run build:prod` → deploy `/dist` to S3 + CloudFront
+### Option A — Elastic Beanstalk (POC / Current)
+
+Architecture: `CloudFront → Elastic Beanstalk (EC2 t3.micro, public subnet) → RDS + ElastiCache (private subnets)`
+
+No Docker required. EB manages OS patching, JVM supervision, health checks, and CloudWatch logs automatically.
+
+```bash
+# 1. Provision infrastructure
+cd terraform
+terraform init
+terraform apply   # creates VPC, RDS, ElastiCache, SES, S3, CloudFront, EB environment
+
+# 2. Build the JAR
+mvn clean package -Paws -DskipTests
+
+# 3. Deploy to Elastic Beanstalk
+eb init           # select region + application (one-time)
+eb deploy         # uploads JAR, EB restarts the app
+
+# 4. Deploy the frontend
+cd frontend
+npm run build:prod
+aws s3 sync dist/frontend/ s3://<your-bucket-name>/ --delete
+aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
+```
+
+Set env vars in the EB console (Configuration → Software → Environment properties) or via `.ebextensions/env.config`. See the [full EB deployment guide](docs/migration-plan-elastic-beanstalk.md).
+
+---
+
+### Option B — ECS Fargate (Production Path)
+
+Architecture: `CloudFront → ALB → ECS Fargate Cluster (2–8 tasks, private subnets) → RDS Multi-AZ + ElastiCache`
+
+Requires Docker. Supports Blue/Green deployments, horizontal auto-scaling, and a full CI/CD pipeline.
+
+```bash
+# 1. Provision infrastructure
+cd terraform
+terraform init
+terraform apply   # creates VPC, ECR, ECS cluster, ALB, RDS Multi-AZ, ElastiCache, SES, S3, CloudFront
+
+# 2. Build and push the Docker image
+mvn clean package -Paws -DskipTests
+docker build -t currency-convertor .
+docker tag currency-convertor:latest <account-id>.dkr.ecr.<region>.amazonaws.com/currency-convertor:latest
+aws ecr get-login-password | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
+docker push <account-id>.dkr.ecr.<region>.amazonaws.com/currency-convertor:latest
+
+# 3. Update the ECS service (triggers a rolling / Blue/Green deploy)
+aws ecs update-service --cluster currency-convertor --service backend --force-new-deployment
+
+# 4. Deploy the frontend (same as EB option)
+cd frontend
+npm run build:prod
+aws s3 sync dist/frontend/ s3://<your-bucket-name>/ --delete
+aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
+```
+
+Set secrets in AWS Secrets Manager and reference them from the ECS task definition. See the [full ECS Fargate deployment guide](docs/migration-plan-ecs-fargate.md).
+
+---
+
+### POC vs Production — Key Differences
+
+| Area | Elastic Beanstalk (POC) | ECS Fargate (Prod) |
+|---|---|---|
+| Docker | Not required | Required |
+| Compute | EC2 t3.micro (single instance) | 2–8 Fargate tasks, auto-scaling |
+| Load balancer | None — direct public IP | ALB (~$18/month) |
+| RDS | db.t3.micro, single-AZ | db.t3.medium, Multi-AZ |
+| Redis | cache.t3.micro, 1 node | Replication group, 2 nodes, Multi-AZ |
+| Deployments | `eb deploy` (rolling restart) | Blue/Green via CodeDeploy |
+| Secrets | EB env vars / `.ebextensions` | AWS Secrets Manager |
+| CI/CD | Manual | CodePipeline → CodeBuild → ECS deploy |
 
 ---
 
@@ -243,6 +317,9 @@ See [`prd.md`](prd.md) for the full deployment guide. High-level steps:
 |---|---|
 | [`prd.md`](prd.md) | Full developer guide — setup, architecture, deployment |
 | [`progress.md`](progress.md) | Implementation status tracker |
+| [`docs/migration-plan-elastic-beanstalk.md`](docs/migration-plan-elastic-beanstalk.md) | Step-by-step Elastic Beanstalk deployment (POC) |
+| [`docs/migration-plan-ecs-fargate.md`](docs/migration-plan-ecs-fargate.md) | Step-by-step ECS Fargate deployment (Production) |
+| [`docs/prod-vs-poc-infra.md`](docs/prod-vs-poc-infra.md) | POC vs Production infrastructure comparison |
 | [`docs/api-contract.md`](docs/api-contract.md) | Complete REST API specification |
 | [`docs/data-model.md`](docs/data-model.md) | Database schema and JPA entity design |
 | [`docs/architecture-summary.md`](docs/architecture-summary.md) | System architecture overview |
