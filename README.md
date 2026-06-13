@@ -207,10 +207,8 @@ currency-convertor/
 │   │   └── shared/        Services, models, interceptors
 │   ├── mock/server.js     Express mock backend for frontend-only dev
 │   └── proxy.mock.json    Proxy config for mock mode
-├── terraform/             AWS infrastructure (EB/ECS, RDS, ElastiCache, SES, CloudFront)
-├── docs/                  Architecture, API contract, data model, requirements
-├── prd.md                 Full developer guide
-└── progress.md            Implementation status tracker
+├── terraform/             AWS infrastructure (RDS, ElastiCache, SES, S3, CloudFront, WAF)
+└── docs/                  Architecture, API contract, data model, requirements
 ```
 
 ---
@@ -259,7 +257,7 @@ aws s3 sync dist/frontend/ s3://<your-bucket-name>/ --delete
 aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
 ```
 
-Set env vars in the EB console (Configuration → Software → Environment properties) or via `.ebextensions/env.config`. See the [full EB deployment guide](docs/migration-plan-elastic-beanstalk.md).
+Set env vars in the EB console (Configuration → Software → Environment properties) or via `.ebextensions/env.config`.
 
 ---
 
@@ -292,7 +290,7 @@ aws s3 sync dist/frontend/ s3://<your-bucket-name>/ --delete
 aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
 ```
 
-Set secrets in AWS Secrets Manager and reference them from the ECS task definition. See the [full ECS Fargate deployment guide](docs/migration-plan-ecs-fargate.md).
+Set secrets in AWS Secrets Manager and reference them from the ECS task definition.
 
 ---
 
@@ -315,12 +313,8 @@ Set secrets in AWS Secrets Manager and reference them from the ECS task definiti
 
 | File | Contents |
 |---|---|
-| [`prd.md`](prd.md) | Full developer guide — setup, architecture, deployment |
-| [`progress.md`](progress.md) | Implementation status tracker |
-| [`docs/migration-plan-elastic-beanstalk.md`](docs/migration-plan-elastic-beanstalk.md) | Step-by-step Elastic Beanstalk deployment (POC) |
-| [`docs/migration-plan-ecs-fargate.md`](docs/migration-plan-ecs-fargate.md) | Step-by-step ECS Fargate deployment (Production) |
-| [`docs/prod-vs-poc-infra.md`](docs/prod-vs-poc-infra.md) | POC vs Production infrastructure comparison |
 | [`docs/api-contract.md`](docs/api-contract.md) | Complete REST API specification |
 | [`docs/data-model.md`](docs/data-model.md) | Database schema and JPA entity design |
 | [`docs/architecture-summary.md`](docs/architecture-summary.md) | System architecture overview |
 | [`docs/functional-requirements.md`](docs/functional-requirements.md) | FR-01 through FR-12 |
+| [`docs/migration-plan-lambda.md`](docs/migration-plan-lambda.md) | Lambda deployment reference |
