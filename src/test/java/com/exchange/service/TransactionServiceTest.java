@@ -32,6 +32,7 @@ class TransactionServiceTest {
     @Mock private ExchangeRateService exchangeRateService;
     @Mock private EmailService emailService;
     @Mock private LogService logService;
+    @Mock private AppSettingService appSettingService;
 
     @InjectMocks
     private TransactionService transactionService;
@@ -41,8 +42,6 @@ class TransactionServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Inject @Value threshold
-        ReflectionTestUtils.setField(transactionService, "approvalThreshold", new BigDecimal("100"));
         ReflectionTestUtils.setField(transactionService, "adminEmail", "admin@example.com");
 
         testUser = User.builder()
@@ -69,6 +68,7 @@ class TransactionServiceTest {
         req.setToCurrency("EUR");
         req.setAmount(new BigDecimal("50.00"));
 
+        when(appSettingService.getApprovalThreshold()).thenReturn(new BigDecimal("100"));
         when(exchangeRateService.getRate("USD", "EUR")).thenReturn(new BigDecimal("0.92"));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> {
             Transaction t = inv.getArgument(0);
@@ -90,6 +90,7 @@ class TransactionServiceTest {
         req.setToCurrency("EUR");
         req.setAmount(new BigDecimal("500.00"));
 
+        when(appSettingService.getApprovalThreshold()).thenReturn(new BigDecimal("100"));
         when(exchangeRateService.getRate("USD", "EUR")).thenReturn(new BigDecimal("0.92"));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> {
             Transaction t = inv.getArgument(0);
@@ -112,6 +113,7 @@ class TransactionServiceTest {
         req.setToCurrency("GBP");
         req.setAmount(new BigDecimal("100.00")); // exactly at threshold
 
+        when(appSettingService.getApprovalThreshold()).thenReturn(new BigDecimal("100"));
         when(exchangeRateService.getRate("USD", "GBP")).thenReturn(new BigDecimal("0.79"));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> {
             Transaction t = inv.getArgument(0);

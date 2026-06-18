@@ -11,7 +11,6 @@ import com.exchange.repository.TransactionRepository;
 import com.exchange.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -34,12 +33,9 @@ public class TransactionService {
     private final ExchangeRateService exchangeRateService;
     private final EmailService emailService;
     private final LogService logService;
+    private final AppSettingService appSettingService;
 
-    @Value("${transaction.approval.threshold:100}")
-    private BigDecimal approvalThreshold;
-
-    // Hardcoded admin email for notifications; in production use a configurable list
-    @Value("${transaction.admin.email:admin@example.com}")
+    @org.springframework.beans.factory.annotation.Value("${transaction.admin.email:admin@example.com}")
     private String adminEmail;
 
     @Transactional
@@ -57,7 +53,7 @@ public class TransactionService {
             BigDecimal rateToUsd = exchangeRateService.getRate(request.getFromCurrency(), "USD");
             amountInUsd = request.getAmount().multiply(rateToUsd).setScale(2, RoundingMode.HALF_UP);
         }
-        boolean requiresApproval = amountInUsd.compareTo(approvalThreshold) >= 0;
+        boolean requiresApproval = amountInUsd.compareTo(appSettingService.getApprovalThreshold()) >= 0;
         TransactionStatus status = requiresApproval
                 ? TransactionStatus.PENDING_APPROVAL
                 : TransactionStatus.APPROVED;

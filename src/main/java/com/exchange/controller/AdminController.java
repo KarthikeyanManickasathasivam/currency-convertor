@@ -1,21 +1,27 @@
 package com.exchange.controller;
 
+import com.exchange.dto.request.UpdateThresholdRequest;
+import com.exchange.dto.response.ApprovalThresholdResponse;
 import com.exchange.dto.response.DashboardStatsResponse;
 import com.exchange.dto.response.LogResponse;
 import com.exchange.dto.response.TransactionResponse;
 import com.exchange.dto.response.UserResponse;
+import com.exchange.model.AppSetting;
 import com.exchange.model.Log;
 import com.exchange.model.User;
 import com.exchange.model.enums.TransactionStatus;
+import com.exchange.repository.AppSettingRepository;
 import com.exchange.repository.LogRepository;
 import com.exchange.repository.TransactionRepository;
 import com.exchange.repository.UserRepository;
+import com.exchange.service.AppSettingService;
 import com.exchange.service.LogService;
 import com.exchange.service.TransactionService;
 import com.exchange.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +45,8 @@ public class AdminController {
 
     private final UserService userService;
     private final TransactionService transactionService;
+    private final AppSettingService appSettingService;
+    private final AppSettingRepository appSettingRepository;
     private final LogRepository logRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
@@ -114,6 +122,33 @@ public class AdminController {
             @RequestBody(required = false) Map<String, String> body) {
         String reason = body != null ? body.get("reason") : null;
         return ResponseEntity.ok(transactionService.reject(id, admin.getUserId(), reason));
+    }
+
+    // ── Settings ──────────────────────────────────────────────────────────────
+
+    @Operation(summary = "Get approval threshold")
+    @GetMapping("/settings/approval-threshold")
+    public ResponseEntity<ApprovalThresholdResponse> getApprovalThreshold() {
+        AppSetting setting = appSettingRepository.findById(AppSettingService.APPROVAL_THRESHOLD_KEY).orElse(null);
+        return ResponseEntity.ok(ApprovalThresholdResponse.builder()
+                .threshold(appSettingService.getApprovalThreshold())
+                .updatedAt(setting != null ? setting.getUpdatedAt() : null)
+                .updatedBy(setting != null && setting.getUpdatedBy() != null ? setting.getUpdatedBy().getUserId() : null)
+                .build());
+    }
+
+    @Operation(summary = "Update approval threshold")
+    @PutMapping("/settings/approval-threshold")
+    public ResponseEntity<ApprovalThresholdResponse> updateApprovalThreshold(
+            @RequestBody @Valid UpdateThresholdRequest request,
+            @AuthenticationPrincipal User admin) {
+        appSettingService.updateApprovalThreshold(request.threshold(), admin);
+        AppSetting setting = appSettingRepository.findById(AppSettingService.APPROVAL_THRESHOLD_KEY).orElseThrow();
+        return ResponseEntity.ok(ApprovalThresholdResponse.builder()
+                .threshold(request.threshold())
+                .updatedAt(setting.getUpdatedAt())
+                .updatedBy(admin.getUserId())
+                .build());
     }
 
     // ── Logs ──────────────────────────────────────────────────────────────────

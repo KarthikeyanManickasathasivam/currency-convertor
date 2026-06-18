@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
-import { AdminService, DashboardStats } from '../shared/services/admin.service';
+import { AdminService, ApprovalThresholdResponse, DashboardStats } from '../shared/services/admin.service';
 import { AuthService } from '../shared/services/auth.service';
 import { TransactionResponse, RateResponse, LogEntry } from '../shared/models/transaction.model';
 import { UserResponse } from '../shared/models/auth.model';
@@ -433,6 +433,47 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
               </div>
             </mat-tab>
 
+            <!-- Tab 6: Settings -->
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <mat-icon class="mr-1" style="font-size:16px;width:16px;height:16px;">settings</mat-icon>
+                Settings
+              </ng-template>
+              <div class="p-6">
+                <div class="max-w-md">
+                  <div class="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-xl border border-indigo-100 p-5">
+                    <h3 class="font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                      <mat-icon class="text-indigo-500" style="font-size:18px;width:18px;height:18px;">tune</mat-icon>
+                      Approval Threshold
+                    </h3>
+                    <p class="text-gray-500 text-sm mb-4">
+                      Conversions whose USD equivalent meets or exceeds this value will require admin approval.
+                    </p>
+                    <form [formGroup]="thresholdForm" (ngSubmit)="saveThreshold()" class="flex gap-3 items-start">
+                      <mat-form-field appearance="outline" style="background:white;border-radius:8px;flex:1;">
+                        <mat-label>Threshold (USD)</mat-label>
+                        <input matInput type="number" formControlName="threshold" min="0.01" step="0.01">
+                        <mat-error>Must be at least 0.01</mat-error>
+                      </mat-form-field>
+                      <button mat-raised-button color="primary" type="submit"
+                              [disabled]="thresholdForm.invalid || savingThreshold"
+                              style="height:56px;padding:0 20px;margin-top:4px;">
+                        {{ savingThreshold ? 'Saving…' : 'Save' }}
+                      </button>
+                    </form>
+                    <div *ngIf="thresholdError" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{{ thresholdError }}</div>
+                    <div *ngIf="thresholdSuccess" class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center gap-2">
+                      <mat-icon style="font-size:16px;width:16px;height:16px;">check_circle</mat-icon>
+                      {{ thresholdSuccess }}
+                    </div>
+                    <p *ngIf="thresholdData?.updatedAt" class="mt-3 text-xs text-gray-400">
+                      Last updated: {{ thresholdData!.updatedAt | date:'medium' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </mat-tab>
+
           </mat-tab-group>
         </div>
       </div>
@@ -455,6 +496,12 @@ export class AdminComponent implements OnInit {
   editingRateId: number | null = null;
   editingRateValue: number = 0;
 
+  thresholdForm: FormGroup;
+  thresholdData: ApprovalThresholdResponse | null = null;
+  savingThreshold = false;
+  thresholdError = '';
+  thresholdSuccess = '';
+
   constructor(
     private fb: FormBuilder,
     private adminService: AdminService,
@@ -465,6 +512,9 @@ export class AdminComponent implements OnInit {
       fromCurrency: ['', Validators.required],
       toCurrency:   ['', Validators.required],
       rate:         [null, [Validators.required, Validators.min(0.0001)]]
+    });
+    this.thresholdForm = this.fb.group({
+      threshold: [null, [Validators.required, Validators.min(0.01)]]
     });
   }
 
@@ -477,6 +527,10 @@ export class AdminComponent implements OnInit {
     this.adminService.getUsers().subscribe(page => this.users = page.content);
     this.adminService.getRates().subscribe(r => this.rates = r);
     this.adminService.getLogs().subscribe(page => this.logs = page.content);
+    this.adminService.getApprovalThreshold().subscribe(t => {
+      this.thresholdData = t;
+      this.thresholdForm.patchValue({ threshold: t.threshold });
+    });
   }
 
   approve(id: string): void {
@@ -541,6 +595,25 @@ export class AdminComponent implements OnInit {
         this.adminService.getDashboard().subscribe(s => this.stats = s);
       });
     }
+  }
+
+  saveThreshold(): void {
+    if (this.thresholdForm.invalid) return;
+    this.savingThreshold = true;
+    this.thresholdError = '';
+    this.thresholdSuccess = '';
+    const value = this.thresholdForm.value.threshold;
+    this.adminService.updateApprovalThreshold(value).subscribe({
+      next: t => {
+        this.savingThreshold = false;
+        this.thresholdData = t;
+        this.thresholdSuccess = `Threshold updated to $${value}.`;
+      },
+      error: err => {
+        this.savingThreshold = false;
+        this.thresholdError = err.error?.message || 'Failed to update threshold.';
+      }
+    });
   }
 
   statusClass(status: string): string {

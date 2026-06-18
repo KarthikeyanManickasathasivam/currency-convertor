@@ -18,6 +18,12 @@ export interface DashboardStats {
   topFromCurrencies: string[];
 }
 
+export interface ApprovalThresholdResponse {
+  threshold: number;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly base = `${environment.apiUrl}/admin`;
@@ -73,5 +79,13 @@ export class AdminService {
   getLogs(page = 0, size = 50): Observable<PageResponse<LogEntry>> {
     const params = new HttpParams().set('page', page).set('size', size);
     return this.http.get<PageResponse<LogEntry>>(`${this.base}/logs`, { params });
+  }
+
+  getApprovalThreshold(): Observable<ApprovalThresholdResponse> {
+    return this.http.get<ApprovalThresholdResponse>(`${this.base}/settings/approval-threshold`);
+  }
+
+  updateApprovalThreshold(threshold: number): Observable<ApprovalThresholdResponse> {
+    return this.http.put<ApprovalThresholdResponse>(`${this.base}/settings/approval-threshold`, { threshold });
   }
 }
