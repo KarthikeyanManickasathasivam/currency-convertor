@@ -222,6 +222,36 @@
                     </excludes>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <!-- instruments bytecode before tests run -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- generates HTML/XML/CSV report under target/site/jacoco/ -->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludes>
+                        <!-- Lombok-generated, Spring-proxy, and boilerplate classes -->
+                        <exclude>com/exchange/CurrencyExchangeApplication.class</exclude>
+                        <exclude>com/exchange/dto/**</exclude>
+                        <exclude>com/exchange/model/enums/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
