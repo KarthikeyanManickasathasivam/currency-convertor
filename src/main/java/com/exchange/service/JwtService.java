@@ -82,6 +82,15 @@ public class JwtService {
                 .compact();
     }
 
+    public boolean isRefreshToken(String token) {
+        try {
+            String type = extractClaim(token, claims -> (String) claims.get("type"));
+            return "refresh".equals(type);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public boolean isTokenValid(String token, UserDetails user) {
         try {
             final String username = extractUsername(token);

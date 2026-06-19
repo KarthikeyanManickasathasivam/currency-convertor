@@ -21,4 +21,5 @@ public class TransactionResponse {
     private String status;
     private UUID approvedBy;
     private LocalDateTime approvalDate;
+    private BigDecimal approvalThreshold;
 }

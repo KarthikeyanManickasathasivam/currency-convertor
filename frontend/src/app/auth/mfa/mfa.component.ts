@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,7 +12,7 @@ import { AuthService } from '../../shared/services/auth.service';
   selector: 'app-mfa',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule,
+    CommonModule, ReactiveFormsModule, RouterLink,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule
   ],
   template: `
@@ -44,7 +44,7 @@ import { AuthService } from '../../shared/services/auth.service';
             </div>
 
             <form [formGroup]="form" (ngSubmit)="onSubmit()">
-              <mat-form-field class="w-full" appearance="outline">
+              <mat-form-field class="w-full" appearance="outline" subscriptSizing="dynamic">
                 <mat-label>6-digit OTP code</mat-label>
                 <input matInput formControlName="otp" placeholder="123456"
                        maxlength="6" autocomplete="one-time-code"

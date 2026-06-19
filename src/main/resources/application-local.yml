@@ -30,6 +30,8 @@ app:
   jwt:
     private-key: ""
     public-key: ""
+  cookie:
+    secure: false
 
 logging:
   level:

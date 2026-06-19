@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Security Review Report — Currency Exchange Service</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #2d3748; }
+
+    header {
+      background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+      color: #fff;
+      padding: 40px 48px;
+    }
+    header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 6px; }
+    header p  { font-size: 0.95rem; color: #a0aec0; }
+
+    .meta-bar {
+      display: flex; gap: 32px; margin-top: 20px; flex-wrap: wrap;
+    }
+    .meta-item { font-size: 0.85rem; color: #cbd5e0; }
+    .meta-item strong { color: #fff; }
+
+    main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 22px 20px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+      border-top: 4px solid transparent;
+    }
+    .card.critical { border-top-color: #e53e3e; }
+    .card.high     { border-top-color: #dd6b20; }
+    .card.medium   { border-top-color: #d69e2e; }
+    .card.low      { border-top-color: #38a169; }
+    .card.total    { border-top-color: #3182ce; }
+    .card .count   { font-size: 2.4rem; font-weight: 700; line-height: 1; }
+    .card.critical .count { color: #e53e3e; }
+    .card.high     .count { color: #dd6b20; }
+    .card.medium   .count { color: #d69e2e; }
+    .card.low      .count { color: #38a169; }
+    .card.total    .count { color: #3182ce; }
+    .card .label   { font-size: 0.8rem; color: #718096; margin-top: 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      vertical-align: middle;
+    }
+    .badge.critical { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+    .badge.high     { background: #fffaf0; color: #c05621; border: 1px solid #feebc8; }
+    .badge.medium   { background: #fffff0; color: #975a16; border: 1px solid #fefcbf; }
+    .badge.low      { background: #f0fff4; color: #276749; border: 1px solid #c6f6d5; }
+    .badge.fixed    { background: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; }
+
+    /* Findings */
+    section.section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin: 36px 0 16px;
+    }
+    section.section-header h2 {
+      font-size: 1.1rem; font-weight: 700; color: #1a202c;
+    }
+    .divider {
+      flex: 1; height: 1px; background: #e2e8f0;
+    }
+
+    .finding {
+      background: #fff;
+      border-radius: 10px;
+      border-left: 5px solid transparent;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+    .finding.critical { border-left-color: #e53e3e; }
+    .finding.high     { border-left-color: #dd6b20; }
+    .finding.medium   { border-left-color: #d69e2e; }
+    .finding.low      { border-left-color: #38a169; }
+
+    .finding-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      padding: 18px 22px 14px;
+      gap: 12px;
+    }
+    .finding-title {
+      font-size: 1rem; font-weight: 600; color: #1a202c;
+      flex: 1;
+    }
+    .finding-id {
+      font-size: 0.75rem; color: #a0aec0; font-weight: 500; margin-top: 2px;
+    }
+    .badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    .finding-body { padding: 0 22px 20px; }
+    .finding-body p { font-size: 0.92rem; color: #4a5568; line-height: 1.7; margin-bottom: 10px; }
+
+    .code-block {
+      background: #1a202c;
+      color: #e2e8f0;
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .code-block .highlight { color: #fc8181; font-weight: bold; }
+    .code-block .ok { color: #68d391; font-weight: bold; }
+    .code-block .comment { color: #718096; }
+
+    .fix-box {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      color: #276749;
+      margin-top: 10px;
+    }
+    .fix-box strong { display: block; margin-bottom: 4px; }
+
+    .location {
+      display: inline-block;
+      background: #edf2f7;
+      color: #4a5568;
+      font-family: monospace;
+      font-size: 0.78rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    /* Table */
+    table {
+      width: 100%; border-collapse: collapse;
+      background: #fff; border-radius: 10px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      margin-top: 8px;
+    }
+    th {
+      background: #edf2f7; font-size: 0.78rem; text-transform: uppercase;
+      letter-spacing: .5px; color: #718096; padding: 12px 16px; text-align: left;
+    }
+    td { padding: 12px 16px; font-size: 0.88rem; border-top: 1px solid #e2e8f0; }
+    tr:hover td { background: #f7fafc; }
+
+    footer {
+      text-align: center; padding: 32px 24px;
+      font-size: 0.82rem; color: #a0aec0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Security Review Report</h1>
+  <p>Static Application Security Testing (SAST) — Currency Exchange Service</p>
+  <div class="meta-bar">
+    <div class="meta-item"><strong>Project:</strong> currency-exchange</div>
+    <div class="meta-item"><strong>Review Date:</strong> 2026-06-19</div>
+    <div class="meta-item"><strong>Reviewer:</strong> Claude Code (SAST)</div>
+    <div class="meta-item"><strong>Scope:</strong> Full source code review — all Java packages</div>
+    <div class="meta-item"><strong>Standard:</strong> OWASP Top 10 2021</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid" style="margin-top:32px;">
+    <div class="card total">  <div class="count">12</div><div class="label">Total Findings</div></div>
+    <div class="card critical"><div class="count">3</div> <div class="label">Critical</div></div>
+    <div class="card high">   <div class="count">3</div> <div class="label">High</div></div>
+    <div class="card medium"> <div class="count">4</div> <div class="label">Medium</div></div>
+    <div class="card low">    <div class="count">2</div> <div class="label">Low / Info</div></div>
+  </div>
+
+  <!-- Summary Table -->
+  <section class="section-header"><h2>Finding Summary</h2><div class="divider"></div></section>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Finding</th><th>Severity</th><th>OWASP Category</th><th>File</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>01</td><td>MFA Bypass with Hardcoded OTP</td><td><span class="badge critical">Critical</span></td><td>A07 Auth Failures</td><td>AuthService.java:68</td><td><span class="badge" style="background:#fff8f0;color:#92400e;border:1px solid #fde68a;">Accepted Risk (POC)</span></td></tr>
+      <tr><td>02</td><td>Refresh Cookie Secure Flag Hardcoded False</td><td><span class="badge critical">Critical</span></td><td>A02 Crypto Failures</td><td>AuthController.java:121</td><td><span class="badge fixed">Fixed</span></td></tr>
+      <tr><td>03</td><td>Refresh Token Type Not Validated</td><td><span class="badge critical">Critical</span></td><td>A07 Auth Failures</td><td>AuthService.java:110</td><td><span class="badge fixed">Fixed</span></td></tr>
+      <tr><td>04</td><td>IP Spoofing Bypasses Rate Limiting</td><td><span class="badge high">High</span></td><td>A05 Security Misconfiguration</td><td>RateLimitFilter.java:49</td><td>Open</td></tr>
+      <tr><td>05</td><td>OTP Brute Force Not Prevented</td><td><span class="badge high">High</span></td><td>A07 Auth Failures</td><td>AuthController.java:74</td><td>Open</td></tr>
+      <tr><td>06</td><td>User Enumeration via Registration Errors</td><td><span class="badge high">High</span></td><td>A01 Broken Access Control</td><td>AuthService.java:40</td><td>Open</td></tr>
+      <tr><td>07</td><td>Swagger UI Publicly Accessible</td><td><span class="badge medium">Medium</span></td><td>A05 Security Misconfiguration</td><td>SecurityConfig.java:53</td><td>Open</td></tr>
+      <tr><td>08</td><td>Refresh Token Cookie TTL Miscalculated</td><td><span class="badge medium">Medium</span></td><td>A07 Auth Failures</td><td>AuthController.java:123</td><td>Open</td></tr>
+      <tr><td>09</td><td>Admin Controller Bypasses Service Layer</td><td><span class="badge medium">Medium</span></td><td>A04 Insecure Design</td><td>AdminController.java:49</td><td>Open</td></tr>
+      <tr><td>10</td><td>SameSite Not Set on Refresh Cookie</td><td><span class="badge medium">Medium</span></td><td>A05 Security Misconfiguration</td><td>AuthController.java:118</td><td>Open</td></tr>
+      <tr><td>11</td><td>External API Key Defaults to "demo"</td><td><span class="badge low">Low</span></td><td>A05 Security Misconfiguration</td><td>AlphaVantageClient.java:19</td><td>Open</td></tr>
+      <tr><td>12</td><td>JWT Public Key Logged at INFO</td><td><span class="badge low">Low</span></td><td>A09 Logging Failures</td><td>JwtService.java:51</td><td>Open</td></tr>
+    </tbody>
+  </table>
+
+  <!-- CRITICAL -->
+  <section class="section-header" style="margin-top:48px;"><h2>Critical Findings</h2><div class="divider"></div></section>
+
+  <div class="finding critical">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-01 &nbsp; MFA Bypass with Hardcoded OTP "000000"</div>
+        <div class="finding-id">OWASP A07:2021 — Identification and Authentication Failures</div>
+      </div>
+      <div class="badges">
+        <span class="badge critical">Critical</span>
+        <span class="badge" style="background:#fff8f0;color:#92400e;border:1px solid #fde68a;">Accepted Risk (POC)</span>
+      </div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AuthService.java:68–78 &nbsp;|&nbsp; application-aws.yml</span>
+      <p>A hardcoded <code>mfaBypassEmails</code> list allows specific email addresses to skip MFA entirely and receive a JWT token directly on login. The code stores a fixed OTP of <strong>"000000"</strong> for these accounts. This bypass was introduced because email delivery via Amazon SES was not available for the admin account during POC development.</p>
+      <div class="code-block"><span class="highlight">// POC bypass — skips MFA for configured emails</span>
+if (mfaBypassEmails.contains(request.getEmail())) {
+    otpService.storeOtp(request.getEmail(), <span class="highlight">"000000"</span>);
+    return AuthResponse.builder()
+        .accessToken(jwtService.generateAccessToken(user))
+        .build();
+}</div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:12px 16px;font-size:0.88rem;color:#92400e;margin-top:10px;">
+        <strong>Risk Accepted — POC Only:</strong>
+        This bypass is intentionally retained for this POC assignment due to email delivery constraints. The bypass email is now configured via the <code>${MFA_BYPASS_EMAILS}</code> environment variable rather than hardcoded in source.
+        This mechanism <strong>must be removed before any production deployment</strong> and replaced with a properly configured SES-verified email or TOTP-based admin authentication.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding critical">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-02 &nbsp; Refresh Cookie <code>Secure</code> Flag Hardcoded to <code>false</code></div>
+        <div class="finding-id">OWASP A02:2021 — Cryptographic Failures</div>
+      </div>
+      <div class="badges">
+        <span class="badge critical">Critical</span>
+        <span class="badge fixed">Fixed</span>
+      </div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AuthController.java:121</span>
+      <p>The refresh token cookie was created with <code>setSecure(false)</code>, meaning it could be transmitted over plain HTTP connections. A comment stated it should be set to <code>true</code> for AWS, but this was never enforced in code — any misconfigured deployment would silently transmit refresh tokens in the clear, allowing them to be intercepted by network attackers.</p>
+      <div class="code-block"><span class="highlight">cookie.setSecure(false);</span> <span class="comment">// set true in aws profile via nginx/API Gateway — never enforced!</span></div>
+      <div class="fix-box">
+        <strong>Fix Applied:</strong>
+        Replaced the hardcoded <code>false</code> with a configurable property <code>app.cookie.secure</code> (defaults to <code>true</code>). Set <code>app.cookie.secure: false</code> in <code>application-local.yml</code> for local H2 dev only. Production (aws profile) inherits the <code>true</code> default.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding critical">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-03 &nbsp; Refresh Token Type Not Validated (Token Confusion Attack)</div>
+        <div class="finding-id">OWASP A07:2021 — Identification and Authentication Failures</div>
+      </div>
+      <div class="badges">
+        <span class="badge critical">Critical</span>
+        <span class="badge fixed">Fixed</span>
+      </div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AuthService.java:110–118 &nbsp;|&nbsp; JwtService.java</span>
+      <p>The <code>refreshToken()</code> method validated that the supplied token was a valid, unexpired JWT signed by the correct key — but never checked whether it was actually a <em>refresh</em> token. Both access tokens and refresh tokens are signed with the same RSA private key. An attacker in possession of a stolen access token (e.g., from a compromised log, browser cache, or XSS) could submit it to the <code>/api/auth/refresh</code> endpoint and obtain a fresh access token, extending their session indefinitely beyond the 15-minute access token TTL.</p>
+      <div class="code-block"><span class="highlight">// VULNERABLE — validates signature + expiry, but not token type</span>
+public AuthResponse refreshToken(String refreshToken) {
+    String email = jwtService.extractUsername(refreshToken);
+    User user = ...findByEmail(email)...
+    if (!jwtService.isTokenValid(refreshToken, user)) {  <span class="comment">// no type check!</span>
+        throw new InvalidOtpException("Invalid or expired refresh token");
+    }
+    ...
+}</div>
+      <div class="fix-box">
+        <strong>Fix Applied:</strong>
+        Added <code>isRefreshToken(String token)</code> to <code>JwtService</code> which reads the <code>"type"</code> claim and asserts it equals <code>"refresh"</code>. The <code>refreshToken()</code> method in <code>AuthService</code> now validates the type claim as its first check, rejecting any access token submitted to the refresh endpoint.
+      </div>
+    </div>
+  </div>
+
+  <!-- HIGH -->
+  <section class="section-header"><h2>High Findings</h2><div class="divider"></div></section>
+
+  <div class="finding high">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-04 &nbsp; X-Forwarded-For Spoofing Bypasses Rate Limiting</div>
+        <div class="finding-id">OWASP A05:2021 — Security Misconfiguration</div>
+      </div>
+      <div class="badges"><span class="badge high">High</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">RateLimitFilter.java:49–52 &nbsp;|&nbsp; AuthController.java:152–154</span>
+      <p>Both the rate limiter and the audit log trust the client-supplied <code>X-Forwarded-For</code> header directly, taking the first IP in the comma-separated chain. An attacker can set <code>X-Forwarded-For: 1.2.3.4</code> in every request to rotate identities and bypass the 100 req/min limit entirely.</p>
+      <div class="code-block"><span class="highlight">return xForwardedFor.split(",")[0].trim();</span> <span class="comment">// attacker-controlled first value</span></div>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Trust only the last IP added by your load balancer (the rightmost untrusted-network entry). Use <code>request.getRemoteAddr()</code> when behind a single trusted proxy, or parse only the last value: <code>xForwardedFor.split(",")[last].trim()</code>.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding high">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-05 &nbsp; OTP Brute Force Not Prevented</div>
+        <div class="finding-id">OWASP A07:2021 — Identification and Authentication Failures</div>
+      </div>
+      <div class="badges"><span class="badge high">High</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AuthController.java:74 &nbsp;|&nbsp; InMemoryOtpService.java</span>
+      <p>The <code>POST /api/auth/mfa/verify</code> endpoint has no per-user attempt counter or lockout. A 6-digit OTP has only 1,000,000 combinations. Combined with the IP spoofing issue (SEC-04), an attacker can brute force a valid OTP within hours at scale.</p>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Track failed OTP attempts per email in the OTP store. Invalidate the OTP and lock the account for N minutes after 5 consecutive failures. Re-issue a new OTP only after the lockout expires.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding high">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-06 &nbsp; User Enumeration via Registration Error Messages</div>
+        <div class="finding-id">OWASP A01:2021 — Broken Access Control</div>
+      </div>
+      <div class="badges"><span class="badge high">High</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AuthService.java:40, 43</span>
+      <p>Registration errors reveal whether a specific email or username already exists in the system. An attacker can enumerate valid accounts by posting to <code>/api/auth/register</code> and reading the distinct error messages.</p>
+      <div class="code-block"><span class="highlight">throw new DuplicateResourceException("Email already registered: " + request.getEmail());</span>
+<span class="highlight">throw new DuplicateResourceException("Username already taken: " + request.getUsername());</span></div>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Return a generic message regardless of conflict type: <code>"Registration failed. Please check your details and try again."</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEDIUM -->
+  <section class="section-header"><h2>Medium Findings</h2><div class="divider"></div></section>
+
+  <div class="finding medium">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-07 &nbsp; Swagger UI Publicly Accessible in All Environments</div>
+        <div class="finding-id">OWASP A05:2021 — Security Misconfiguration</div>
+      </div>
+      <div class="badges"><span class="badge medium">Medium</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">SecurityConfig.java:53–58</span>
+      <p><code>/swagger-ui/**</code> and <code>/api-docs/**</code> are marked <code>permitAll()</code>, exposing the full API contract to unauthenticated callers in production — including all endpoint paths, request/response schemas, and authentication flows.</p>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Add <code>@Profile("local")</code> to the OpenAPI configuration bean, or require <code>ADMIN</code> role to access Swagger in production.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding medium">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-08 &nbsp; Refresh Token Cookie TTL Miscalculated (12h Instead of 7 Days)</div>
+        <div class="finding-id">OWASP A07:2021 — Identification and Authentication Failures</div>
+      </div>
+      <div class="badges"><span class="badge medium">Medium</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AuthController.java:123</span>
+      <p>The cookie max-age calculation uses the <em>access token</em> expiration (900,000 ms = 15 min) multiplied by 48, giving 43,200 seconds = 12 hours. The comment states "7-day TTL" but the actual TTL is 12 hours, causing silent user session loss and forcing unnecessary re-logins.</p>
+      <div class="code-block"><span class="highlight">cookie.setMaxAge((int) (jwtService.getExpiration() / 1000 * 48));</span>  <span class="comment">// 900s × 48 = 12h, NOT 7 days</span></div>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Expose <code>getRefreshExpiration()</code> from <code>JwtService</code> and use it: <code>cookie.setMaxAge((int) (jwtService.getRefreshExpiration() / 1000))</code>.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding medium">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-09 &nbsp; Admin Controller Bypasses Service Layer Audit Logging</div>
+        <div class="finding-id">OWASP A04:2021 — Insecure Design</div>
+      </div>
+      <div class="badges"><span class="badge medium">Medium</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AdminController.java:49–52</span>
+      <p><code>AdminController</code> directly injects <code>LogRepository</code>, <code>UserRepository</code>, <code>TransactionRepository</code>, and <code>AppSettingRepository</code>. Direct repository calls bypass any business logic and audit trail that belongs in the service layer. Admin actions (viewing logs, reading all users) go unrecorded.</p>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Move all data access to service methods. Controllers should never hold repository references directly.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding medium">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-10 &nbsp; <code>SameSite</code> Attribute Not Set on Refresh Cookie</div>
+        <div class="finding-id">OWASP A05:2021 — Security Misconfiguration</div>
+      </div>
+      <div class="badges"><span class="badge medium">Medium</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AuthController.java:118–125</span>
+      <p>The refresh cookie is set without a <code>SameSite</code> attribute. While modern browsers default to <code>Lax</code>, explicitly setting <code>SameSite=Strict</code> prevents the cookie from being sent in any cross-site context.</p>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Switch to Spring's <code>ResponseCookie</code> builder which supports <code>.sameSite("Strict")</code>:<br/>
+        <code>ResponseCookie.from("refresh_token", token).httpOnly(true).secure(true).sameSite("Strict")...</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOW -->
+  <section class="section-header"><h2>Low / Informational Findings</h2><div class="divider"></div></section>
+
+  <div class="finding low">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-11 &nbsp; External API Key Defaults to "demo"</div>
+        <div class="finding-id">OWASP A05:2021 — Security Misconfiguration</div>
+      </div>
+      <div class="badges"><span class="badge low">Low</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">AlphaVantageClient.java:19 &nbsp;|&nbsp; application.yml:70</span>
+      <p>The Alpha Vantage API key falls back to the string <code>"demo"</code> if not configured. The demo key is shared across all demo users and is heavily rate-limited, causing silent degradation in production if the env var is not set.</p>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Remove the default value to force a startup failure if the key is absent. Add a <code>@PostConstruct</code> validation or use <code>@NotBlank</code> on the field.
+      </div>
+    </div>
+  </div>
+
+  <div class="finding low">
+    <div class="finding-header">
+      <div>
+        <div class="finding-title">SEC-12 &nbsp; JWT Public Key Logged at INFO Level</div>
+        <div class="finding-id">OWASP A09:2021 — Security Logging and Monitoring Failures</div>
+      </div>
+      <div class="badges"><span class="badge low">Low</span></div>
+    </div>
+    <div class="finding-body">
+      <span class="location">JwtService.java:51</span>
+      <p>The auto-generated RSA public key is logged at <code>INFO</code> level. While the public key is by definition not secret, emitting it into application logs is unexpected and may be flagged by security scanners or log monitoring tools.</p>
+      <div class="code-block"><span class="highlight">log.info("RSA keys generated. Public key (base64): {}", ...);</span></div>
+      <div class="fix-box">
+        <strong>Recommended Fix:</strong> Downgrade to <code>log.debug(...)</code>.
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>Generated by Claude Code SAST &nbsp;|&nbsp; Currency Exchange Service &nbsp;|&nbsp; 2026-06-19</p>
+  <p style="margin-top:6px;">This report covers source-level static analysis only. Dependency CVE scanning (OWASP Dependency-Check / Snyk) should be run separately.</p>
+</footer>
+
+</body>
+</html>

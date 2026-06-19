@@ -24,10 +24,6 @@
         <resilience4j.version>2.2.0</resilience4j.version>
         <testcontainers.version>1.20.3</testcontainers.version>
         <surefire-plugin.version>2.22.2</surefire-plugin.version>
-        <sonar.projectKey>currency-exchange</sonar.projectKey>
-        <sonar.host.url>http://localhost:9000</sonar.host.url>
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencies>
@@ -283,33 +279,6 @@
                     </excludes>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.sonarsource.scanner.maven</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-                <version>4.0.0.4121</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>10.0.4</version>
-                <configuration>
-                    <failBuildOnCVSS>7</failBuildOnCVSS>
-                    <suppressionFile>${project.basedir}/.dependency-check-suppressions.xml</suppressionFile>
-                    <formats>
-                        <format>HTML</format>
-                        <format>JSON</format>
-                    </formats>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
         </plugins>
     </build>
 

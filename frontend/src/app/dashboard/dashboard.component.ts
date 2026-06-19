@@ -81,7 +81,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                 </h3>
                 <form [formGroup]="conversionForm" (ngSubmit)="convert()" class="flex gap-4 flex-wrap items-start">
 
-                  <mat-form-field appearance="outline" style="background:white;border-radius:8px;">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="background:white;border-radius:8px;">
                     <mat-label>From</mat-label>
                     <mat-select formControlName="fromCurrency">
                       <mat-option *ngFor="let c of currencies" [value]="c">{{ c }}</mat-option>
@@ -92,14 +92,14 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                     <mat-icon>arrow_forward</mat-icon>
                   </div>
 
-                  <mat-form-field appearance="outline" style="background:white;border-radius:8px;">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="background:white;border-radius:8px;">
                     <mat-label>To</mat-label>
                     <mat-select formControlName="toCurrency">
                       <mat-option *ngFor="let c of currencies" [value]="c">{{ c }}</mat-option>
                     </mat-select>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" style="background:white;border-radius:8px;">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="background:white;border-radius:8px;">
                     <mat-label>Amount</mat-label>
                     <input matInput type="number" formControlName="amount" min="0.01">
                     <mat-error>Must be greater than 0</mat-error>
@@ -155,7 +155,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                 </p>
                 <p *ngIf="lastResult.status === 'PENDING_APPROVAL'" class="text-xs text-amber-700 mt-2 flex items-center gap-1">
                   <mat-icon style="font-size:14px;width:14px;height:14px;">info</mat-icon>
-                  Transactions ≥ $100 require admin approval before processing.
+                  Transactions ≥ {{ lastResult.approvalThreshold | currency:'USD':'symbol':'1.0-0' }} require admin approval before processing.
                 </p>
               </div>
 
@@ -261,13 +261,13 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                   Update Profile
                 </h3>
                 <form [formGroup]="profileForm" (ngSubmit)="updateProfile()" class="space-y-3">
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
                     <mat-label>New Username</mat-label>
                     <input matInput formControlName="username">
                     <mat-error>3–50 characters required</mat-error>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="w-full">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
                     <mat-label>New Password</mat-label>
                     <input matInput type="password" formControlName="password" placeholder="Leave blank to keep current">
                     <mat-hint>Minimum 8 characters</mat-hint>

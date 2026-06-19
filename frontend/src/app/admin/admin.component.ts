@@ -227,7 +227,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                     Add Currency Pair
                   </h3>
                   <form [formGroup]="rateForm" (ngSubmit)="addRate()" class="flex gap-4 flex-wrap items-start">
-                    <mat-form-field appearance="outline" style="background:white;border-radius:8px;">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" style="background:white;border-radius:8px;">
                       <mat-label>From Currency</mat-label>
                       <mat-select formControlName="fromCurrency">
                         <mat-option *ngFor="let c of currencies" [value]="c">{{ c }}</mat-option>
@@ -235,7 +235,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                       <mat-error>Required</mat-error>
                     </mat-form-field>
 
-                    <mat-form-field appearance="outline" style="background:white;border-radius:8px;">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" style="background:white;border-radius:8px;">
                       <mat-label>To Currency</mat-label>
                       <mat-select formControlName="toCurrency">
                         <mat-option *ngFor="let c of currencies" [value]="c">{{ c }}</mat-option>
@@ -243,7 +243,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                       <mat-error>Required</mat-error>
                     </mat-form-field>
 
-                    <mat-form-field appearance="outline" style="background:white;border-radius:8px;">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic" style="background:white;border-radius:8px;">
                       <mat-label>Exchange Rate</mat-label>
                       <input matInput type="number" formControlName="rate" step="0.0001" min="0.0001">
                       <mat-error>Must be > 0</mat-error>
@@ -269,9 +269,9 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                     <ng-container matColumnDef="pair">
                       <th mat-header-cell *matHeaderCellDef>Currency Pair</th>
                       <td mat-cell *matCellDef="let r">
-                        <span class="font-mono font-semibold text-gray-800">{{ r.fromCurrency }}</span>
-                        <span class="text-gray-400 mx-1">/</span>
-                        <span class="font-mono font-semibold text-gray-800">{{ r.toCurrency }}</span>
+                        <span class="font-mono text-sm font-medium">{{ r.fromCurrency }}</span>
+                        <mat-icon class="text-gray-300 align-middle mx-1" style="font-size:14px;width:14px;height:14px;">arrow_forward</mat-icon>
+                        <span class="font-mono text-sm font-medium">{{ r.toCurrency }}</span>
                       </td>
                     </ng-container>
                     <ng-container matColumnDef="rate">
@@ -450,7 +450,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
                       Conversions whose USD equivalent meets or exceeds this value will require admin approval.
                     </p>
                     <form [formGroup]="thresholdForm" (ngSubmit)="saveThreshold()" class="flex gap-3 items-start">
-                      <mat-form-field appearance="outline" style="background:white;border-radius:8px;flex:1;">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="background:white;border-radius:8px;flex:1;">
                         <mat-label>Threshold (USD)</mat-label>
                         <input matInput type="number" formControlName="threshold" min="0.01" step="0.01">
                         <mat-error>Must be at least 0.01</mat-error>

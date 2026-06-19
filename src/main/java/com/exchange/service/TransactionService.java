@@ -169,6 +169,7 @@ public class TransactionService {
                 .fromCurrency(tx.getFromCurrency())
                 .toCurrency(tx.getToCurrency())
                 .amount(tx.getAmount())
+                .approvalThreshold(appSettingService.getApprovalThreshold())
                 .convertedAmount(tx.getConvertedAmount())
                 .rate(tx.getRate())
                 .transactionDate(tx.getTransactionDate())

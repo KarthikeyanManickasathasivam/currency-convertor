@@ -67,7 +67,6 @@ public class AuthService {
 
         if (mfaBypassEmails.contains(request.getEmail())) {
             log.warn("MFA bypassed for {} (POC mode) — issuing token directly", request.getEmail());
-            // Also store fixed OTP as fallback in case old frontend still shows MFA screen
             otpService.storeOtp(request.getEmail(), "000000");
             return AuthResponse.builder()
                     .accessToken(jwtService.generateAccessToken(user))
@@ -108,6 +107,10 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(String refreshToken) {
+        if (!jwtService.isRefreshToken(refreshToken)) {
+            throw new InvalidOtpException("Invalid or expired refresh token");
+        }
+
         String email = jwtService.extractUsername(refreshToken);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

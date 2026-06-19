@@ -16,6 +16,7 @@ export interface TransactionResponse {
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   approvedBy?: string;
   approvalDate?: string;
+  approvalThreshold?: number;
 }
 
 export interface RateResponse {

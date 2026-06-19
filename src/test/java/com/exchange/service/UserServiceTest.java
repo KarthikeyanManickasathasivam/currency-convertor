@@ -52,7 +52,7 @@ class UserServiceTest {
         assertThat(result.getUserId()).isEqualTo(testUser.getUserId());
         assertThat(result.getEmail()).isEqualTo("test@example.com");
         assertThat(result.getRole()).isEqualTo("USER");
-        assertThat(result.isActive()).isTrue();
+        assertThat(result.getIsActive()).isTrue();
     }
 
     @Test

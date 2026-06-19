@@ -64,21 +64,21 @@ import { AuthService } from '../../shared/services/auth.service';
           </div>
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
-            <mat-form-field class="w-full" appearance="outline">
+            <mat-form-field class="w-full" appearance="outline" subscriptSizing="dynamic">
               <mat-label>Username</mat-label>
               <mat-icon matPrefix class="mr-2 text-gray-400">person_outline</mat-icon>
               <input matInput formControlName="username" autocomplete="username">
               <mat-error>Username must be 3–50 characters</mat-error>
             </mat-form-field>
 
-            <mat-form-field class="w-full mt-2" appearance="outline">
+            <mat-form-field class="w-full mt-2" appearance="outline" subscriptSizing="dynamic">
               <mat-label>Email address</mat-label>
               <mat-icon matPrefix class="mr-2 text-gray-400">mail_outline</mat-icon>
               <input matInput type="email" formControlName="email" autocomplete="email">
               <mat-error>Valid email required</mat-error>
             </mat-form-field>
 
-            <mat-form-field class="w-full mt-2" appearance="outline">
+            <mat-form-field class="w-full mt-2" appearance="outline" subscriptSizing="dynamic">
               <mat-label>Password</mat-label>
               <mat-icon matPrefix class="mr-2 text-gray-400">lock_outline</mat-icon>
               <input matInput [type]="showPassword ? 'text' : 'password'"

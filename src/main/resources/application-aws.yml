@@ -46,8 +46,10 @@ app:
     from: ${EMAIL_FROM_ADDRESS:no-reply@currency-exchange.com}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  cookie:
+    secure: true
   mfa:
-    bypass-emails: cartkn.kkdi@gmail.com
+    bypass-emails: ${MFA_BYPASS_EMAILS:}
 
 transaction:
   admin:

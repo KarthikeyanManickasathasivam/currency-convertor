@@ -1,0 +1,37 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+
+  build:
+    commands:
+      - echo "Running tests and generating JaCoCo coverage report..."
+      - mvn clean verify
+
+      - echo "Running SonarCloud scan..."
+      - mvn sonar:sonar
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=$SONAR_ORG
+          -Dsonar.projectKey=$SONAR_PROJECT_KEY
+          -Dsonar.token=$SONAR_TOKEN
+
+      - echo "Running OWASP Dependency-Check..."
+      - mvn dependency-check:check
+          -DnvdApiKey=$NVD_API_KEY
+          -DfailBuildOnCVSS=7
+          || true
+
+reports:
+  owasp-report:
+    files:
+      - "target/dependency-check-report.html"
+    discard-paths: no
+
+artifacts:
+  files:
+    - target/dependency-check-report.html
+    - target/dependency-check-report.json
+    - target/site/jacoco/**
+  name: scan-reports

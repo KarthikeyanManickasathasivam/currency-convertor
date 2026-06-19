@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,6 +35,9 @@ import java.util.Map;
 public class AuthController {
 
     private static final String REFRESH_COOKIE = "refresh_token";
+
+    @Value("${app.cookie.secure:true}")
+    private boolean cookieSecure;
 
     private final AuthService authService;
     private final JwtService jwtService;
@@ -118,7 +122,7 @@ public class AuthController {
     private Cookie buildRefreshCookie(String token) {
         Cookie cookie = new Cookie(REFRESH_COOKIE, token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // set true in aws profile via nginx/API Gateway
+        cookie.setSecure(cookieSecure);
         cookie.setPath("/api/auth");
         cookie.setMaxAge((int) (jwtService.getExpiration() / 1000 * 48)); // 7-day TTL
         return cookie;

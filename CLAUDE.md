@@ -14,23 +14,23 @@ Real-time currency exchange rate service - enterprise-grade web app for instant,
 - **Resilience**: Resilience4j 2.x (circuit breaker, retry, rate limiter)
 - **Build**: Maven 3.9.x (backend), Angular CLI (frontend)
 - **Testing**: JUnit 5, Mockito, Testcontainers, Cypress
-- **Deployment**: AWS Lambda (SnapStart) + API Gateway HTTP API — JAR packaged directly, no Docker
-- **Frontend Hosting**: Amazon S3 (private, versioned, encrypted) + CloudFront CDN (Angular 404→index.html, no-cache on index.html)
-- **Security**: AWS WAF (Managed Rules: CommonRuleSet, SQLi, KnownBadInputs + rate-limit rule) on API GW and CloudFront
-- **CI/CD**: AWS CodePipeline + CodeBuild
+- **Deployment**: AWS Elastic Beanstalk (Corretto 21 on Amazon Linux 2023, EC2 t3.micro, single-instance for POC) — JAR deployed directly, no Docker
+- **Frontend Hosting**: Amazon S3 (private, versioned, encrypted) + CloudFront CDN (Angular 404→index.html, no-cache on index.html; `/api/*` behavior proxies to EB)
+- **Security**: AWS WAF (Managed Rules: CommonRuleSet, SQLi, KnownBadInputs + rate-limit rule) on CloudFront
+- **CI/CD**: AWS CodePipeline + CodeBuild (`buildspec.yml` — runs tests, SonarCloud scan, OWASP Dependency-Check)
 - **IaC**: Terraform 1.7.x
-- **Code Quality**: SonarQube 10.x (>80% coverage gate)
+- **Code Quality**: SonarCloud (cloud-hosted; `$SONAR_ORG` / `$SONAR_PROJECT_KEY` / `$SONAR_TOKEN` env vars in CodeBuild)
 - **API Docs**: SpringDoc OpenAPI 2.x (Swagger)
 
 ## Architecture Decisions
-1. **Stateless JWT + MFA** - JWT RS256 tokens with mandatory email OTP (6-digit, 5-min TTL in Redis). JWT not issued until MFA verification completes. No server-side sessions.
+1. **Stateless JWT + MFA** - JWT RS256 tokens with mandatory email OTP (6-digit, 5-min TTL in Redis). JWT not issued until MFA verification completes. No server-side sessions. Refresh tokens carry a `type=refresh` claim validated on every refresh call (`JwtService.isRefreshToken()`).
 2. **Transaction Approval Workflow** - Conversions ≥ $100 (configurable: `transaction.approval.threshold`) get status=PENDING_APPROVAL. Admin approves/rejects via dashboard. Email notifications via SES to both admin and user.
 3. **Cache-Aside Pattern** - Redis caches exchange rates (5-min TTL). App controls population/invalidation. ~95% cache hit rate in steady state.
 4. **Circuit Breaker** - Resilience4j wraps external API calls. 50% failure threshold, 30s open wait, falls back to last cached rate.
 5. **BCrypt cost 12** for passwords (~250ms hash time).
 6. **RS256 over HS256** for JWT - asymmetric keys, microservices-ready.
 7. **PostgreSQL** for ACID compliance on financial transaction records.
-8. **AWS Lambda (SnapStart)** - serverless, no containers. Cold start mitigated by SnapStart (publishes a versioned snapshot). API Gateway HTTP API routes to a Lambda alias (required for SnapStart — `$LATEST` is not eligible). Lambda runtime: `java21`; memory: 1024 MB; timeout: 30 s.
+8. **AWS Elastic Beanstalk** - EC2-based (Corretto 21, t3.micro). Single-instance for POC; spring port 5000 (`SERVER_PORT=5000`). CloudFront `/api/*` behavior proxies to EB over HTTP (no ALB needed for single-instance). `app.cookie.secure` is profile-driven: `false` locally, `true` on AWS profile — never hardcoded.
 
 ## Package Structure
 ```
@@ -60,11 +60,11 @@ com.exchange.aspect        - LoggingAspect, PerformanceMonitorAspect
 
 ## Reference Docs
 All detailed specifications are in the `docs/` folder:
-- `docs/CLAUDE.md` — This file (auto-read by Claude Code)
 - `docs/data-model.md` — DDL, entity designs, all field definitions with JPA annotations
 - `docs/api-contract.md` — Full REST API specification with request/response schemas
 - `docs/functional-requirements.md` — FR-01 through FR-12 with design component mapping
 - `docs/architecture-summary.md` — HLD summary: all architecture views, security, deployment, integration
+- `docs/migration-plan-elastic-beanstalk-console.md` — Step-by-step AWS Console guide: VPC, RDS, ElastiCache, EB, CloudFront, S3 (POC/no-Terraform)
 
 ## Implementation Order (Suggested)
 1. Project scaffolding (Spring Boot + dependencies in pom.xml)
@@ -77,4 +77,4 @@ All detailed specifications are in the `docs/` folder:
 8. Transaction module (conversion, approval workflow, notifications)
 9. Admin APIs (user management, rate CRUD, log viewer, approval endpoints)
 10. Angular frontend (Auth → Dashboard → Admin)
-11. Terraform (AWS infrastructure — Lambda, API GW, RDS, ElastiCache, S3/CloudFront, WAF, monitoring)
+11. AWS infrastructure — Elastic Beanstalk (Corretto 21), RDS, ElastiCache, S3/CloudFront, IAM; follow `docs/migration-plan-elastic-beanstalk-console.md`

@@ -11,6 +11,7 @@ import com.exchange.model.User;
 import com.exchange.model.enums.Role;
 import com.exchange.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,8 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -229,6 +228,7 @@ class AuthServiceTest {
 
     @Test
     void refreshToken_validToken_returnsNewAccessToken() {
+        when(jwtService.isRefreshToken("valid-refresh")).thenReturn(true);
         when(jwtService.extractUsername("valid-refresh")).thenReturn("test@example.com");
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(jwtService.isTokenValid("valid-refresh", testUser)).thenReturn(true);
@@ -243,9 +243,7 @@ class AuthServiceTest {
 
     @Test
     void refreshToken_invalidToken_throwsInvalidOtp() {
-        when(jwtService.extractUsername("bad-refresh")).thenReturn("test@example.com");
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(jwtService.isTokenValid("bad-refresh", testUser)).thenReturn(false);
+        when(jwtService.isRefreshToken("bad-refresh")).thenReturn(false);
 
         assertThatThrownBy(() -> authService.refreshToken("bad-refresh"))
                 .isInstanceOf(InvalidOtpException.class)
