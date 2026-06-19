@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.util.Base64;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -101,5 +104,90 @@ class JwtServiceTest {
     @Test
     void getExpiration_returnsConfiguredValue() {
         assertThat(jwtService.getExpiration()).isEqualTo(900_000L);
+    }
+
+    // ── decodeKey branch coverage ─────────────────────────────────────────
+
+    private KeyPair freshRsaKeyPair() throws Exception {
+        KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
+        gen.initialize(2048);
+        return gen.generateKeyPair();
+    }
+
+    private String toPem(String label, byte[] der) {
+        String body = Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(der);
+        return "-----BEGIN " + label + "-----\n" + body + "\n-----END " + label + "-----";
+    }
+
+    @Test
+    void init_withRawPemHeaders_parsesKeysAndGeneratesValidToken() throws Exception {
+        KeyPair pair = freshRsaKeyPair();
+        String privatePem = toPem("PRIVATE KEY", pair.getPrivate().getEncoded());
+        String publicPem  = toPem("PUBLIC KEY",  pair.getPublic().getEncoded());
+
+        JwtService svc = new JwtService();
+        ReflectionTestUtils.setField(svc, "privateKeyBase64", privatePem);
+        ReflectionTestUtils.setField(svc, "publicKeyBase64",  publicPem);
+        ReflectionTestUtils.setField(svc, "expiration",        900_000L);
+        ReflectionTestUtils.setField(svc, "refreshExpiration", 604_800_000L);
+        ReflectionTestUtils.setField(svc, "issuer",            "test");
+        svc.init();
+
+        String token = svc.generateAccessToken(testUser);
+        assertThat(svc.extractUsername(token)).isEqualTo(testUser.getUsername());
+        assertThat(svc.isTokenValid(token, testUser)).isTrue();
+    }
+
+    @Test
+    void init_withBareDerBase64_parsesKeysAndGeneratesValidToken() throws Exception {
+        KeyPair pair = freshRsaKeyPair();
+        String privateDer = Base64.getEncoder().encodeToString(pair.getPrivate().getEncoded());
+        String publicDer  = Base64.getEncoder().encodeToString(pair.getPublic().getEncoded());
+
+        JwtService svc = new JwtService();
+        ReflectionTestUtils.setField(svc, "privateKeyBase64", privateDer);
+        ReflectionTestUtils.setField(svc, "publicKeyBase64",  publicDer);
+        ReflectionTestUtils.setField(svc, "expiration",        900_000L);
+        ReflectionTestUtils.setField(svc, "refreshExpiration", 604_800_000L);
+        ReflectionTestUtils.setField(svc, "issuer",            "test");
+        svc.init();
+
+        String token = svc.generateAccessToken(testUser);
+        assertThat(svc.isTokenValid(token, testUser)).isTrue();
+    }
+
+    @Test
+    void init_withBase64EncodedPem_parsesKeysAndGeneratesValidToken() throws Exception {
+        KeyPair pair = freshRsaKeyPair();
+        // Wrap entire PEM block in another layer of base64 (case 3 in decodeKey)
+        String privatePem    = toPem("PRIVATE KEY", pair.getPrivate().getEncoded());
+        String publicPem     = toPem("PUBLIC KEY",  pair.getPublic().getEncoded());
+        String privateB64Pem = Base64.getEncoder().encodeToString(privatePem.getBytes());
+        String publicB64Pem  = Base64.getEncoder().encodeToString(publicPem.getBytes());
+
+        JwtService svc = new JwtService();
+        ReflectionTestUtils.setField(svc, "privateKeyBase64", privateB64Pem);
+        ReflectionTestUtils.setField(svc, "publicKeyBase64",  publicB64Pem);
+        ReflectionTestUtils.setField(svc, "expiration",        900_000L);
+        ReflectionTestUtils.setField(svc, "refreshExpiration", 604_800_000L);
+        ReflectionTestUtils.setField(svc, "issuer",            "test");
+        svc.init();
+
+        String token = svc.generateAccessToken(testUser);
+        assertThat(svc.isTokenValid(token, testUser)).isTrue();
+    }
+
+    @Test
+    void init_privateKeySetButPublicKeyMissing_throwsIllegalState() {
+        JwtService svc = new JwtService();
+        ReflectionTestUtils.setField(svc, "privateKeyBase64", "some-non-blank-key");
+        ReflectionTestUtils.setField(svc, "publicKeyBase64",  "");
+        ReflectionTestUtils.setField(svc, "expiration",        900_000L);
+        ReflectionTestUtils.setField(svc, "refreshExpiration", 604_800_000L);
+        ReflectionTestUtils.setField(svc, "issuer",            "test");
+
+        assertThatThrownBy(svc::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT_PUBLIC_KEY");
     }
 }

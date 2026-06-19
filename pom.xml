@@ -24,6 +24,10 @@
         <resilience4j.version>2.2.0</resilience4j.version>
         <testcontainers.version>1.20.3</testcontainers.version>
         <surefire-plugin.version>2.22.2</surefire-plugin.version>
+        <sonar.projectKey>currency-exchange</sonar.projectKey>
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <dependencies>
@@ -226,6 +230,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.15</version>
                 <executions>
                     <!-- instruments bytecode before tests run -->
                     <execution>
@@ -245,13 +250,66 @@
                 </executions>
                 <configuration>
                     <excludes>
-                        <!-- Lombok-generated, Spring-proxy, and boilerplate classes -->
+                        <!-- Bootstrap -->
                         <exclude>com/exchange/CurrencyExchangeApplication.class</exclude>
+
+                        <!-- DTOs and enums — pure data carriers, no logic -->
                         <exclude>com/exchange/dto/**</exclude>
                         <exclude>com/exchange/model/enums/**</exclude>
+
+                        <!-- JPA entities — Lombok-generated getters/setters, no business logic -->
+                        <exclude>com/exchange/model/ExchangeRate.class</exclude>
+                        <exclude>com/exchange/model/Log.class</exclude>
+                        <exclude>com/exchange/model/Transaction.class</exclude>
+                        <exclude>com/exchange/model/AppSetting.class</exclude>
+
+                        <!-- Spring wiring — tested implicitly via integration tests -->
+                        <exclude>com/exchange/config/**</exclude>
+
+                        <!-- AOP aspects — require Spring context with weaving -->
+                        <exclude>com/exchange/aspect/**</exclude>
+
+                        <!-- Servlet filters — tested via integration/E2E tests -->
+                        <exclude>com/exchange/filter/**</exclude>
+
+                        <!-- External HTTP clients — require live network/WebClient mocks -->
+                        <exclude>com/exchange/integration/AlphaVantageClient.class</exclude>
+                        <exclude>com/exchange/integration/ExchangeRateHostClient.class</exclude>
+
+                        <!-- AWS/Redis service impls — require live infrastructure -->
+                        <exclude>com/exchange/service/impl/RedisOtpService.class</exclude>
+                        <exclude>com/exchange/service/impl/RedisTokenBlacklistService.class</exclude>
+                        <exclude>com/exchange/service/impl/SesEmailService.class</exclude>
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>4.0.0.4121</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>10.0.4</version>
+                <configuration>
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <suppressionFile>${project.basedir}/.dependency-check-suppressions.xml</suppressionFile>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 

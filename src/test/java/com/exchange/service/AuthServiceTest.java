@@ -159,4 +159,96 @@ class AuthServiceTest {
                 .isInstanceOf(InvalidOtpException.class)
                 .hasMessageContaining("Invalid or expired OTP");
     }
+
+    @Test
+    void register_duplicateUsername_throws() {
+        RegisterRequest req = new RegisterRequest();
+        req.setUsername("testuser");
+        req.setEmail("other@example.com");
+        req.setPassword("Password1!");
+
+        when(userRepository.existsByEmail("other@example.com")).thenReturn(false);
+        when(userRepository.existsByUsername("testuser")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.register(req))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("Username already taken");
+    }
+
+    @Test
+    void login_inactiveAccount_throws() {
+        testUser.setActive(false);
+        LoginRequest req = new LoginRequest();
+        req.setEmail("test@example.com");
+        req.setPassword("correct-password");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+
+        assertThatThrownBy(() -> authService.login(req))
+                .isInstanceOf(BadCredentialsException.class);
+    }
+
+    @Test
+    void login_mfaBypass_returnsTokenDirectly() {
+        ReflectionTestUtils.setField(authService, "mfaBypassEmails", List.of("test@example.com"));
+
+        LoginRequest req = new LoginRequest();
+        req.setEmail("test@example.com");
+        req.setPassword("correct-password");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("correct-password", testUser.getPasswordHash())).thenReturn(true);
+        when(jwtService.generateAccessToken(testUser)).thenReturn("bypass-token");
+        when(jwtService.getExpiration()).thenReturn(900000L);
+
+        AuthResponse result = authService.login(req);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getAccessToken()).isEqualTo("bypass-token");
+        verify(otpService).storeOtp("test@example.com", "000000");
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void verifyMfa_mfaBypassEmail_skipsOtpCheck() {
+        ReflectionTestUtils.setField(authService, "mfaBypassEmails", List.of("test@example.com"));
+
+        MfaVerifyRequest req = new MfaVerifyRequest();
+        req.setEmail("test@example.com");
+        req.setOtp("anything");
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(jwtService.generateAccessToken(testUser)).thenReturn("bypass-jwt");
+        when(jwtService.getExpiration()).thenReturn(900000L);
+
+        AuthResponse result = authService.verifyMfa(req);
+
+        assertThat(result.getAccessToken()).isEqualTo("bypass-jwt");
+        verifyNoInteractions(otpService);
+    }
+
+    @Test
+    void refreshToken_validToken_returnsNewAccessToken() {
+        when(jwtService.extractUsername("valid-refresh")).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(jwtService.isTokenValid("valid-refresh", testUser)).thenReturn(true);
+        when(jwtService.generateAccessToken(testUser)).thenReturn("new-access-token");
+        when(jwtService.getExpiration()).thenReturn(900000L);
+
+        AuthResponse result = authService.refreshToken("valid-refresh");
+
+        assertThat(result.getAccessToken()).isEqualTo("new-access-token");
+        assertThat(result.getTokenType()).isEqualTo("Bearer");
+    }
+
+    @Test
+    void refreshToken_invalidToken_throwsInvalidOtp() {
+        when(jwtService.extractUsername("bad-refresh")).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(jwtService.isTokenValid("bad-refresh", testUser)).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.refreshToken("bad-refresh"))
+                .isInstanceOf(InvalidOtpException.class)
+                .hasMessageContaining("Invalid or expired refresh token");
+    }
 }
