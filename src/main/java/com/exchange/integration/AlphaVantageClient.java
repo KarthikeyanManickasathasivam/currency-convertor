@@ -24,7 +24,7 @@ public class AlphaVantageClient {
     }
 
     public BigDecimal getRate(String fromCurrency, String toCurrency) {
-        log.debug("Fetching rate {}/{} from Alpha Vantage (fallback)", fromCurrency, toCurrency);
+        log.info("Fetching rate {}/{} from Alpha Vantage (fallback)", fromCurrency, toCurrency);
         try {
             Map<?, ?> response = webClient.get()
                     .uri(uriBuilder -> uriBuilder

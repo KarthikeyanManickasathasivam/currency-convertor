@@ -63,6 +63,7 @@ On a single-AZ setup, an AZ failure means your data is unreachable until AWS rec
 | Encryption | None | TLS in-transit + AES-256 at-rest |
 | Failover | None (manual intervention) | Automatic failover to replica |
 | Auth | None | Redis AUTH token required |
+| Rate cache refresh | Demand-driven only (cache-aside, 5-min TTL) | Background scheduler pre-warms top pairs every 4 min |
 
 **Why it matters:**
 
@@ -81,6 +82,20 @@ With a primary + replica topology, Redis replicates asynchronously to the replic
 **Encryption matters** because OTP codes and session state are security-sensitive. Sending them unencrypted inside a VPC is acceptable for dev, but violates PCI-DSS and most enterprise security policies. TLS in-transit and encryption at-rest are table stakes for financial apps.
 
 **cache.t3.micro** (0.5 GB) fills up fast under any real load. cache.r6g.large (13 GB) is memory-optimized and sized to hold the full working set without eviction.
+
+**Rate cache refresh strategy — why the background scheduler is not in the POC:**
+
+The POC uses a pure cache-aside pattern: rates are fetched on demand, cached for 5 minutes, and the first request after expiry pays the external API latency (~200–500ms). A production system would run a `@Scheduled` background job that pre-fetches the top N currency pairs every 4 minutes (just before the 5-minute TTL expires), keeping the cache permanently warm.
+
+The scheduler was deliberately excluded from the POC for five reasons:
+
+1. **No cold-start problem at POC scale.** With 1–2 demo users, an occasional 200ms API call on a cache miss is imperceptible. The problem only matters when many users simultaneously request an expired pair.
+2. **External API quota is finite.** Both `exchangerate.host` and Alpha Vantage operate on free-tier call limits. Pre-fetching 10 pairs every 4 minutes consumes ~3,600 calls/day proactively — whether anyone uses the app or not. Demand-driven calls for a POC burn far less quota.
+3. **No data to decide which pairs to warm.** The scheduler needs a list of high-priority pairs. In production, that list is derived from the top pairs by historical transaction volume. A new POC has no transaction history — any hardcoded list is an arbitrary guess.
+4. **Startup complexity.** A correct scheduler fires with staggered delays on startup to avoid hitting the external API for all pairs simultaneously (thundering herd). Implementing jitter and graceful startup sequencing is non-trivial extra code with no POC benefit.
+5. **5-minute staleness is acceptable for a demo.** The business requirement for "real-time rates" in a POC context means rates are not hours old, not that they are refreshed every 30 seconds.
+
+In production, once transaction history exists, the scheduler would read the top 20 pairs by volume from the database and pre-warm them on a fixed interval. This eliminates the cold-start latency spike entirely and removes the risk of a cache miss triggering a cascade of parallel API calls under concurrent load.
 
 ---
 
@@ -284,6 +299,7 @@ Create CloudWatch dashboards, configure alarms, enable X-Ray in the Spring Boot 
 | DB backups | 1-day backup | 7-day + point-in-time recovery | Financial data requires granular recovery |
 | DB encryption | Optional | At-rest + in-transit TLS enforced | Compliance requirement |
 | Redis | cache.t3.micro, single node | cache.r6g.large, primary + replica | OTP/JWT blacklist loss = security incident |
+| Rate cache warm-up | Demand-driven (first request after TTL expiry hits API) | Background scheduler pre-warms top pairs every 4 min | Cold-start latency spike; thundering herd under concurrent load |
 | Redis encryption | None | TLS in-transit + AES-256 at-rest | Security-critical data (OTPs, session state) |
 | Redis failover | None | Automatic failover < 60s | Login breaks if Redis is down |
 | VPC design | Single private subnet | 3-tier across 2 AZs | Defence in depth; regulatory compliance |

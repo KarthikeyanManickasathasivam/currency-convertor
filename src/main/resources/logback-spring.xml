@@ -23,10 +23,10 @@
     <!-- ── AWS profile: structured JSON for CloudWatch ───────────────────────── -->
     <springProfile name="aws">
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-                <!-- JSON-like structured output; replace with logstash-logback-encoder for true JSON -->
-                <pattern>{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}","level":"%level","correlationId":"%X{correlationId:-}","logger":"%logger{36}","thread":"%thread","message":"%replace(%msg){'\"','\\\"'}","exception":"%replace(%ex{short}){'\"','\\\"'}"}%n</pattern>
-            </encoder>
+            <!-- ch.qos.logback.classic.encoder.JsonEncoder ships with Logback 1.4.11+       -->
+            <!-- (bundled in Spring Boot 3.3.x) — no extra dependency needed.                -->
+            <!-- Emits one valid JSON object per line; MDC fields appear under "mdc": {...}  -->
+            <encoder class="ch.qos.logback.classic.encoder.JsonEncoder"/>
         </appender>
 
         <root level="INFO">

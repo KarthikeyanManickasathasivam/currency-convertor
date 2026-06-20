@@ -40,7 +40,7 @@ public class ExchangeRateService {
         // Check DB first for manually set rates
         var dbRate = rateRepository.findByFromCurrencyAndToCurrencyAndIsActiveTrue(fromCurrency, toCurrency);
         if (dbRate.isPresent()) {
-            log.debug("Rate {}/{} served from DB", fromCurrency, toCurrency);
+            log.info("Rate {}/{} served from cache/DB", fromCurrency, toCurrency);
             return dbRate.get().getRate();
         }
 

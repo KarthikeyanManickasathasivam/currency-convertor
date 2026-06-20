@@ -29,7 +29,7 @@ public class ExchangeRateHostClient implements ExternalRateApiClient {
     @Override
     @CircuitBreaker(name = "rateApi", fallbackMethod = "fallbackRate")
     public BigDecimal getRate(String fromCurrency, String toCurrency) {
-        log.debug("Fetching rate {}/{} from exchangerate.host", fromCurrency, toCurrency);
+        log.info("Fetching rate {}/{} from exchangerate.host", fromCurrency, toCurrency);
         try {
             Map<?, ?> response = webClient.get()
                     .uri(uriBuilder -> uriBuilder

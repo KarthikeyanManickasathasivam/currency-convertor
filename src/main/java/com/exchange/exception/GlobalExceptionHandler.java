@@ -30,42 +30,49 @@ public class GlobalExceptionHandler {
                         fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value",
                         (a, b) -> a
                 ));
+        log.warn("Validation failed at {}: {}", request.getRequestURI(), fieldErrors);
         return build(HttpStatus.BAD_REQUEST, "Validation failed", request.getRequestURI(), fieldErrors);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(
             ResourceNotFoundException ex, HttpServletRequest request) {
+        log.warn("Resource not found at {}: {}", request.getRequestURI(), ex.getMessage());
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI(), null);
     }
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicate(
             DuplicateResourceException ex, HttpServletRequest request) {
+        log.warn("Duplicate resource at {}: {}", request.getRequestURI(), ex.getMessage());
         return build(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI(), null);
     }
 
     @ExceptionHandler(InvalidOtpException.class)
     public ResponseEntity<ErrorResponse> handleInvalidOtp(
             InvalidOtpException ex, HttpServletRequest request) {
+        log.warn("Invalid OTP attempt at {}", request.getRequestURI());
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI(), null);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(
             BadCredentialsException ex, HttpServletRequest request) {
+        log.warn("Bad credentials at {}", request.getRequestURI());
         return build(HttpStatus.UNAUTHORIZED, "Invalid email or password", request.getRequestURI(), null);
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ErrorResponse> handleDisabled(
             DisabledException ex, HttpServletRequest request) {
+        log.warn("Disabled account login attempt at {}", request.getRequestURI());
         return build(HttpStatus.FORBIDDEN, "Account is disabled", request.getRequestURI(), null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(
             AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied at {}", request.getRequestURI());
         return build(HttpStatus.FORBIDDEN, "Access denied", request.getRequestURI(), null);
     }
 
@@ -79,6 +86,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TransactionNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTransactionNotFound(
             TransactionNotFoundException ex, HttpServletRequest request) {
+        log.warn("Transaction not found at {}: {}", request.getRequestURI(), ex.getMessage());
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI(), null);
     }
 

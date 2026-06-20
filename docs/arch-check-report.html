@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture Audit Report — Currency Exchange Service</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #21253a;
+      --border: #2e3350;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --red: #f87171;
+      --red-bg: #2d1a1a;
+      --red-border: #7f1d1d;
+      --green: #4ade80;
+      --green-bg: #0f2d1a;
+      --green-border: #14532d;
+      --yellow: #facc15;
+      --yellow-bg: #2d2300;
+      --yellow-border: #713f12;
+      --blue: #60a5fa;
+      --accent: #818cf8;
+      --font-mono: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 40px 24px;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .badge-fail {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red-border);
+      border-radius: 6px;
+      padding: 4px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      align-self: center;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .subtitle { color: var(--muted); font-size: 13px; }
+    .meta {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    .meta-item { font-size: 12px; color: var(--muted); }
+    .meta-item span { color: var(--text); font-weight: 500; }
+
+    /* Score bar */
+    .score-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .score-number {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--red);
+      line-height: 1;
+      min-width: 60px;
+    }
+    .score-label { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .score-breakdown {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+    .score-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-red { background: var(--red); }
+    .dot-green { background: var(--green); }
+
+    /* Section */
+    .section { margin-bottom: 28px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Violation card */
+    .card {
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .card-fail { border-color: var(--red-border); }
+    .card-pass { border-color: var(--green-border); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      cursor: default;
+    }
+    .card-header-fail { background: var(--red-bg); }
+    .card-header-pass { background: var(--green-bg); }
+
+    .tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .tag-fail {
+      background: #7f1d1d;
+      color: var(--red);
+    }
+    .tag-pass {
+      background: #14532d;
+      color: var(--green);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-body {
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 6px 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      align-items: baseline;
+    }
+    .detail-row:last-child { margin-bottom: 0; }
+    .detail-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-top: 2px;
+    }
+    .detail-value { color: var(--text); line-height: 1.5; }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      color: var(--accent);
+    }
+
+    .fix-value {
+      color: var(--yellow);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .file-link {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--blue);
+    }
+
+    /* Summary table */
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .summary-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .summary-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .summary-table tr:last-child td { border-bottom: none; }
+    .summary-table tr:hover td { background: var(--surface2); }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+    .status-fail {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red-border);
+    }
+    .status-pass {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-border);
+    }
+    .violation-count {
+      font-size: 12px;
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    /* Verdict banner */
+    .verdict {
+      background: var(--red-bg);
+      border: 1px solid var(--red-border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .verdict-icon { font-size: 28px; }
+    .verdict-text { font-size: 15px; font-weight: 700; color: var(--red); }
+    .verdict-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>Architecture Audit Report</h1>
+        <div class="subtitle">Currency Exchange Service — Spring Boot 3.3 / Angular 18</div>
+      </div>
+      <div class="badge-fail">FAIL</div>
+    </div>
+    <div class="meta">
+      <div class="meta-item">Date <span>2026-06-19</span></div>
+      <div class="meta-item">Skill <span>/arch-check</span></div>
+      <div class="meta-item">Branch <span>main</span></div>
+      <div class="meta-item">Violations <span>9</span></div>
+      <div class="meta-item">Rules checked <span>10</span></div>
+    </div>
+  </div>
+
+  <!-- Score bar -->
+  <div class="score-bar">
+    <div>
+      <div class="score-number">9</div>
+      <div class="score-label">violations found</div>
+    </div>
+    <div class="score-breakdown">
+      <div class="score-pill"><div class="dot dot-red"></div> 2 — Controller business logic</div>
+      <div class="score-pill"><div class="dot dot-red"></div> 3 — Repository injection</div>
+      <div class="score-pill"><div class="dot dot-red"></div> 2 — Missing @Valid</div>
+      <div class="score-pill"><div class="dot dot-red"></div> 2 — Missing @Transactional</div>
+      <div class="score-pill"><div class="dot dot-green"></div> 6 rules fully passed</div>
+    </div>
+  </div>
+
+  <!-- RULE 1: Controller business logic -->
+  <div class="section">
+    <div class="section-title">Rule 1 — Controllers must not contain business logic</div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">Business logic in AuthController.login()</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">AuthController.java:63–73</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            The <code>login()</code> method queries <code>UserRepository</code> directly, calls
+            <code>authService.generateRefreshToken()</code>, and builds and sets the refresh cookie —
+            all inside the controller. The <code>if (auth != null)</code> branch that drives the
+            MFA-required vs MFA-bypass behaviour is business logic that belongs in
+            <code>AuthService</code>.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Move refresh-token generation and cookie-building into <code>AuthService.login()</code>
+            or a new <code>AuthService.completeLogin()</code> method; return a wrapper response DTO
+            that the controller can blindly pass back.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">Data transformation logic in AdminController</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">AdminController.java:170–179</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            The private <code>toLogResponse(Log log)</code> mapper lives inside the controller.
+            Controllers must not own mapping logic — it belongs in a service or dedicated mapper class.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Move <code>toLogResponse()</code> into <code>LogService</code> (or a <code>LogMapper</code>
+            component) and have the service return <code>Page&lt;LogResponse&gt;</code> directly,
+            eliminating the mapper from the controller entirely.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULE 2: Repository injection -->
+  <div class="section">
+    <div class="section-title">Rule 2 — Repositories must not be injected into controllers directly</div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">UserRepository injected into AuthController</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">AuthController.java:45</span> (used at lines 67, 85)</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            <code>UserRepository</code> is injected into the controller and called in
+            <code>login()</code> and <code>verifyMfa()</code> to fetch the User entity for
+            refresh-token generation. This is not a simple dashboard aggregation — it is
+            business-logic-adjacent and must go through <code>AuthService</code>.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Add an <code>AuthService</code> method that accepts email and returns the refresh token;
+            remove the <code>UserRepository</code> field from <code>AuthController</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">AppSettingRepository injected into AdminController (beyond dashboard)</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">AdminController.java:50</span> (used at lines 132–137, 146)</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            <code>AppSettingRepository</code> is injected and used directly in
+            <code>getApprovalThreshold()</code> and <code>updateApprovalThreshold()</code>.
+            <code>AppSettingService</code> already owns this domain —
+            the controller bypasses the service for the read path.
+            The documented exception only covers simple read-only dashboard aggregations.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Extend <code>AppSettingService</code> to return a full
+            <code>ApprovalThresholdResponse</code> and remove the
+            <code>AppSettingRepository</code> injection from the controller.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">LogRepository injected into AdminController (non-dashboard)</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">AdminController.java:51</span> (used at lines 158–168)</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            <code>LogRepository</code> is injected and used in <code>getLogs()</code> and
+            <code>getLogsByType()</code> — these are full data-access endpoints, not dashboard
+            aggregations. The documented exception does not cover them.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Add <code>getLogs(Pageable)</code> and <code>getLogsByType(String, Pageable)</code>
+            to <code>LogService</code> (returning <code>Page&lt;LogResponse&gt;</code>) and delegate
+            from the controller.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULE 3: @Valid -->
+  <div class="section">
+    <div class="section-title">Rule 3 — @Valid required on all @RequestBody parameters</div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">Missing @Valid on Map request body — UserController</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">UserController.java:35</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            <code>@RequestBody Map&lt;String, String&gt; body</code> has no <code>@Valid</code>
+            annotation. While a raw <code>Map</code> carries no Bean Validation constraints, the
+            rule requires <code>@Valid</code> on every <code>@RequestBody</code> for consistency
+            and future-proofing.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Replace the <code>Map</code> body with a typed request DTO carrying
+            <code>@Valid</code>, or at minimum add <code>@Valid</code> to the existing parameter.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">Missing @Valid on Map request body — AdminController.reject()</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">AdminController.java:122</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            <code>@RequestBody(required = false) Map&lt;String, String&gt; body</code> — same issue as above.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Introduce a <code>RejectRequest</code> DTO with a nullable <code>reason</code> field
+            and annotate with <code>@Valid @RequestBody(required = false)</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULE 4: @Transactional -->
+  <div class="section">
+    <div class="section-title">Rule 4 — Write operations in services must be @Transactional</div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">Unguarded write inside @Cacheable method — ExchangeRateService.getRate()</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">ExchangeRateService.java:36–59</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            <code>getRate()</code> has no <code>@Transactional</code> but calls
+            <code>saveOrUpdateRate()</code> (line 57) on a cache miss, which calls
+            <code>rateRepository.save()</code>. Each save inside the
+            <code>ifPresentOrElse</code> lambda runs in its own auto-committed
+            repository-level transaction rather than a single service-level unit.
+            <code>@Transactional</code> and <code>@Cacheable</code> on the same method
+            also creates a proxy-ordering conflict.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Extract the fetch-and-persist logic into a separate
+            <code>@Transactional private fetchAndPersistRate()</code> method
+            called from <code>getRate()</code> after the cache miss, keeping
+            <code>@Cacheable</code> and <code>@Transactional</code> on separate methods.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-fail">
+      <div class="card-header card-header-fail">
+        <span class="tag tag-fail">VIOLATION</span>
+        <span class="card-title">Async write method missing @Transactional — LogService.log()</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-row">
+          <div class="detail-label">File</div>
+          <div class="detail-value"><span class="file-link">LogService.java:19</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Issue</div>
+          <div class="detail-value">
+            <code>log()</code> is annotated <code>@Async</code> and calls
+            <code>logRepository.save()</code> but has no <code>@Transactional</code>.
+            Async methods spawn a new thread with no inherited transaction context.
+            If the save fails, there is no rollback and the failure is silently swallowed.
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Fix</div>
+          <div class="fix-value">
+            Add <code>@Transactional(propagation = Propagation.REQUIRES_NEW)</code> to
+            <code>log()</code> so each async log entry runs in its own committed transaction
+            with proper error surfacing.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passed rules -->
+  <div class="section">
+    <div class="section-title">Rules passed</div>
+
+    <div class="card card-pass">
+      <div class="card-header card-header-pass">
+        <span class="tag tag-pass">OK</span>
+        <span class="card-title">Services must never return JPA entities</span>
+      </div>
+    </div>
+
+    <div class="card card-pass">
+      <div class="card-header card-header-pass">
+        <span class="tag tag-pass">OK</span>
+        <span class="card-title">Entities not used as @RequestBody / ResponseEntity bodies</span>
+      </div>
+    </div>
+
+    <div class="card card-pass">
+      <div class="card-header card-header-pass">
+        <span class="tag tag-pass">OK</span>
+        <span class="card-title">BigDecimal used for all monetary values and rates</span>
+      </div>
+    </div>
+
+    <div class="card card-pass">
+      <div class="card-header card-header-pass">
+        <span class="tag tag-pass">OK</span>
+        <span class="card-title">Auth protection on all non-public endpoints</span>
+      </div>
+    </div>
+
+    <div class="card card-pass">
+      <div class="card-header card-header-pass">
+        <span class="tag tag-pass">OK</span>
+        <span class="card-title">All controllers return ResponseEntity&lt;T&gt;</span>
+      </div>
+    </div>
+
+    <div class="card card-pass">
+      <div class="card-header card-header-pass">
+        <span class="tag tag-pass">OK</span>
+        <span class="card-title">SLF4J only — no System.out.println or printStackTrace</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary table -->
+  <div class="section">
+    <div class="section-title">Summary</div>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Rule</th>
+          <th>Status</th>
+          <th>Violations</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Controllers must not contain business logic</td>
+          <td><span class="status-badge status-fail">FAIL</span></td>
+          <td><span class="violation-count">2</span></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Repositories must not be injected into controllers directly</td>
+          <td><span class="status-badge status-fail">FAIL</span></td>
+          <td><span class="violation-count">3</span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>@Valid on all @RequestBody parameters</td>
+          <td><span class="status-badge status-fail">FAIL</span></td>
+          <td><span class="violation-count">2</span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Write operations in services must be @Transactional</td>
+          <td><span class="status-badge status-fail">FAIL</span></td>
+          <td><span class="violation-count">2</span></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Services must never return JPA entities</td>
+          <td><span class="status-badge status-pass">PASS</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Entities not used as request/response bodies</td>
+          <td><span class="status-badge status-pass">PASS</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>BigDecimal for all monetary values and rates</td>
+          <td><span class="status-badge status-pass">PASS</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>Auth protection on all non-public endpoints</td>
+          <td><span class="status-badge status-pass">PASS</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td>All controllers return ResponseEntity&lt;T&gt;</td>
+          <td><span class="status-badge status-pass">PASS</span></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td>SLF4J only (no System.out / printStackTrace)</td>
+          <td><span class="status-badge status-pass">PASS</span></td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Verdict -->
+  <div class="verdict">
+    <div class="verdict-icon">&#10060;</div>
+    <div>
+      <div class="verdict-text">BLOCK DEPLOY — 9 violations across 4 rules</div>
+      <div class="verdict-sub">
+        Address repository-injection and @Transactional violations as priority.
+        @Valid gaps are low-risk but easy to close before submission.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>Currency Exchange Service &mdash; Architect Program Assignment</span>
+    <span>Generated by /arch-check &mdash; 2026-06-19</span>
+  </div>
+
+</div>
+</body>
+</html>
