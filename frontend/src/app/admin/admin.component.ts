@@ -105,7 +105,7 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY
 
         <!-- ── Tabs ────────────────────────────────────────────────────── -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden fade-in-up">
-          <mat-tab-group animationDuration="200ms">
+          <mat-tab-group animationDuration="200ms" (selectedTabChange)="onTabChange($event.index)">
 
             <!-- Tab 1: Pending Approvals -->
             <mat-tab>
@@ -533,6 +533,21 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  onTabChange(index: number): void {
+    this.adminService.getDashboard().subscribe(s => this.stats = s);
+    switch (index) {
+      case 0: this.adminService.getPendingTransactions().subscribe(txs => this.pendingTx = txs); break;
+      case 1: this.adminService.getAllTransactions().subscribe(page => this.allTx = page.content); break;
+      case 2: this.adminService.getRates().subscribe(r => this.rates = r); break;
+      case 3: this.adminService.getUsers().subscribe(page => this.users = page.content); break;
+      case 4: this.adminService.getLogs().subscribe(page => this.logs = page.content); break;
+      case 5: this.adminService.getApprovalThreshold().subscribe(t => {
+        this.thresholdData = t;
+        this.thresholdForm.patchValue({ threshold: t.threshold });
+      }); break;
+    }
+  }
+
   approve(id: string): void {
     this.adminService.approveTransaction(id).subscribe(() => {
       this.adminService.getPendingTransactions().subscribe(txs => this.pendingTx = txs);
@@ -573,9 +588,14 @@ export class AdminComponent implements OnInit {
 
   saveEdit(id: number | undefined): void {
     if (!id) return;
-    this.adminService.updateRate(id, this.editingRateValue).subscribe(() => {
-      this.editingRateId = null;
-      this.adminService.getRates().subscribe(r => this.rates = r);
+    this.adminService.updateRate(id, this.editingRateValue).subscribe({
+      next: () => {
+        this.editingRateId = null;
+        this.adminService.getRates().subscribe(r => this.rates = r);
+      },
+      error: err => {
+        this.rateError = err.error?.message || 'Failed to update rate.';
+      }
     });
   }
 
@@ -583,8 +603,13 @@ export class AdminComponent implements OnInit {
 
   deleteRate(id: number | undefined): void {
     if (!id || !confirm('Delete this currency pair?')) return;
-    this.adminService.deleteRate(id).subscribe(() => {
-      this.adminService.getRates().subscribe(r => this.rates = r);
+    this.adminService.deleteRate(id).subscribe({
+      next: () => {
+        this.adminService.getRates().subscribe(r => this.rates = r);
+      },
+      error: err => {
+        this.rateError = err.error?.message || 'Failed to delete rate.';
+      }
     });
   }
 

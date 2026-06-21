@@ -13,6 +13,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.UUID;
 
+/**
+ * Injects a correlation ID into SLF4J MDC before any other filter or handler runs
+ * ({@code HIGHEST_PRECEDENCE}). Accepts an existing {@code X-Correlation-ID} header
+ * (e.g. forwarded by CloudFront) or generates a new UUID. The ID is echoed in the
+ * response header for client-side tracing.
+ */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorrelationIdFilter extends OncePerRequestFilter {

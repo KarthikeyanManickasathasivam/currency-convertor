@@ -87,7 +87,7 @@ class ExchangeRateServiceTest {
     void getRateResponse_returnsCorrectDto() {
         ExchangeRate dbRate = ExchangeRate.builder()
                 .fromCurrency("USD").toCurrency("EUR")
-                .rate(new BigDecimal("0.92")).source(Source.API)
+                .rate(new BigDecimal("0.92")).source(Source.MANUAL)
                 .isActive(true).lastUpdated(LocalDateTime.now()).build();
 
         when(rateRepository.findByFromCurrencyAndToCurrencyAndIsActiveTrue("USD", "EUR"))
@@ -98,6 +98,25 @@ class ExchangeRateServiceTest {
         assertThat(response.getFromCurrency()).isEqualTo("USD");
         assertThat(response.getToCurrency()).isEqualTo("EUR");
         assertThat(response.getRate()).isEqualByComparingTo("0.92");
+    }
+
+    @Test
+    void getRate_apiSourcedDbRecord_fetchesLiveAndUpdatesLastUpdated() {
+        ExchangeRate apiDbRate = ExchangeRate.builder()
+                .fromCurrency("USD").toCurrency("EUR")
+                .rate(new BigDecimal("0.90")).source(Source.API)
+                .isActive(true).lastUpdated(LocalDateTime.now().minusDays(7)).build();
+
+        when(rateRepository.findByFromCurrencyAndToCurrencyAndIsActiveTrue("USD", "EUR"))
+                .thenReturn(Optional.of(apiDbRate));
+        when(primaryApiClient.getRate("USD", "EUR")).thenReturn(new BigDecimal("0.92"));
+        when(rateRepository.save(any(ExchangeRate.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BigDecimal rate = rateService.getRate("USD", "EUR");
+
+        assertThat(rate).isEqualByComparingTo("0.92");
+        verify(primaryApiClient).getRate("USD", "EUR");
+        verify(rateRepository).save(any(ExchangeRate.class));
     }
 
     @Test

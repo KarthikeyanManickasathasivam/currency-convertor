@@ -60,6 +60,7 @@ public class ExchangeRateHostClient implements ExternalRateApiClient {
         }
     }
 
+    // Intentionally re-throws so ExchangeRateService.getRate() catches it and falls through to AlphaVantageClient
     @SuppressWarnings("unused")
     public BigDecimal fallbackRate(String fromCurrency, String toCurrency, Exception ex) {
         log.warn("Circuit breaker fallback triggered for {}/{}: {}", fromCurrency, toCurrency, ex.getMessage());

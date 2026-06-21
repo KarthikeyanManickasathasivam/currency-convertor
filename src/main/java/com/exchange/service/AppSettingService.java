@@ -24,6 +24,7 @@ public class AppSettingService {
     @Value("${transaction.approval.threshold:100}")
     private BigDecimal defaultThreshold;
 
+    // DB row takes precedence; falls back to the JVM property value if no row has been persisted yet
     public BigDecimal getApprovalThreshold() {
         return appSettingRepository.findById(APPROVAL_THRESHOLD_KEY)
                 .map(s -> new BigDecimal(s.getValue()))

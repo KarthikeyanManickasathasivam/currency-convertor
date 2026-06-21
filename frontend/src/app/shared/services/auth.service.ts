@@ -11,6 +11,10 @@ import {
   UserResponse
 } from '../models/auth.model';
 
+/**
+ * Signals (not BehaviorSubject) provide synchronous reactive auth state without requiring
+ * an explicit subscription — components read isLoggedIn/currentRole directly in templates.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'access_token';
@@ -25,6 +29,7 @@ export class AuthService {
     return this.http.post<UserResponse>(`${environment.apiUrl}/auth/register`, req);
   }
 
+  // Returns null when the server responds 202 (MFA pending); caller navigates to /auth/mfa
   login(req: LoginRequest): Observable<AuthResponse | null> {
     return this.http.post<AuthResponse | null>(`${environment.apiUrl}/auth/login`, req).pipe(
       tap(res => {

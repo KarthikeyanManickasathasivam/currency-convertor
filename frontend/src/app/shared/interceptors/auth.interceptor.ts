@@ -15,6 +15,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(authReq).pipe(
     catchError((err: HttpErrorResponse) => {
+      // Clear session on 401 so an expired stored token doesn't cause an infinite redirect loop
       if (err.status === 401) {
         authService.clearSession();
       }

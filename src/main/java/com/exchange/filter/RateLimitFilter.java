@@ -17,6 +17,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Per-IP rate limiter using an in-memory counter reset every minute via {@code @Scheduled}.
+ * Effective only on a single application instance — the current single-instance EB deployment.
+ * Supplement with AWS WAF rate-limit rules when scaling horizontally.
+ */
 @Slf4j
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {

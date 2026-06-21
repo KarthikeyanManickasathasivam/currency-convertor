@@ -23,6 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Cache-aside exchange rate service (Redis, 5-min TTL). MANUAL-source rates set by admins
+ * bypass live API fetch entirely and are served directly from the DB. Live rates flow through
+ * a primary (exchangerate.host + circuit breaker) → fallback (Alpha Vantage) chain.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,14 +42,14 @@ public class ExchangeRateService {
         fromCurrency = fromCurrency.toUpperCase();
         toCurrency = toCurrency.toUpperCase();
 
-        // Check DB first for manually set rates
+        // Check DB for manually set (MANUAL source) rates — skip live fetch for admin-overridden rates
         var dbRate = rateRepository.findByFromCurrencyAndToCurrencyAndIsActiveTrue(fromCurrency, toCurrency);
-        if (dbRate.isPresent()) {
-            log.info("Rate {}/{} served from cache/DB", fromCurrency, toCurrency);
+        if (dbRate.isPresent() && dbRate.get().getSource() == Source.MANUAL) {
+            log.info("Rate {}/{} served from manually set DB record", fromCurrency, toCurrency);
             return dbRate.get().getRate();
         }
 
-        // Fetch from external API (primary with circuit breaker → fallback)
+        // Fetch live rate from external API (primary with circuit breaker → fallback)
         BigDecimal rate;
         try {
             rate = primaryApiClient.getRate(fromCurrency, toCurrency);
@@ -53,7 +58,7 @@ public class ExchangeRateService {
             rate = fallbackApiClient.getRate(fromCurrency, toCurrency);
         }
 
-        // Persist fetched rate
+        // Persist fetched rate (updates lastUpdated via @PreUpdate)
         saveOrUpdateRate(fromCurrency, toCurrency, rate, Source.API);
         return rate;
     }
@@ -103,6 +108,7 @@ public class ExchangeRateService {
         return toResponse(rateRepository.save(rate));
     }
 
+    // Soft-delete: sets active=false to preserve historical transaction references
     @Transactional
     @CacheEvict(value = "rates", allEntries = true)
     public void deleteRate(Long id) {

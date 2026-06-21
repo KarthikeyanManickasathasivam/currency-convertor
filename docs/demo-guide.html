@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Currency Exchange — Architect Demo Guide</title>
+<style>
+  :root {
+    --blue:    #1a56db;
+    --navy:    #1e3a5f;
+    --green:   #057a55;
+    --amber:   #b45309;
+    --red:     #c81e1e;
+    --purple:  #6b21a8;
+    --grey:    #374151;
+    --light:   #f9fafb;
+    --border:  #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #111827;
+    background: #f3f4f6;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, #2563eb 100%);
+    color: #fff;
+    padding: 36px 40px 28px;
+  }
+  header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+  header p  { margin-top: 6px; opacity: 0.85; font-size: 14px; }
+  .badges   { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* ── Layout ── */
+  main { max-width: 1060px; margin: 32px auto; padding: 0 24px 60px; }
+
+  /* ── Section titles ── */
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .icon { font-size: 22px; }
+
+  /* ── Overview bar ── */
+  .overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-align: center;
+  }
+  .stat-card .num { font-size: 32px; font-weight: 800; color: var(--blue); }
+  .stat-card .lbl { font-size: 12px; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── Timeline / Demo steps ── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .step {
+    position: relative;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .step::before {
+    content: '';
+    position: absolute;
+    left: -23px; top: 22px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--blue);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--blue);
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .step-header:hover { background: #f9fafb; }
+  .timer {
+    background: var(--navy);
+    color: #fff;
+    border-radius: 6px;
+    padding: 3px 9px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+  }
+  .timer.green  { background: var(--green); }
+  .timer.amber  { background: var(--amber); }
+  .timer.red    { background: var(--red); }
+  .timer.purple { background: var(--purple); }
+
+  .step-title { font-weight: 700; font-size: 15px; flex: 1; }
+  .step-sub   { font-size: 12px; color: #6b7280; }
+
+  .step-body {
+    border-top: 1px solid var(--border);
+    padding: 16px 18px;
+    background: var(--light);
+  }
+
+  /* ── Actions list ── */
+  .actions { list-style: none; }
+  .actions li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 6px 0;
+    border-bottom: 1px dashed #e5e7eb;
+  }
+  .actions li:last-child { border-bottom: none; }
+  .action-num {
+    background: var(--blue);
+    color: #fff;
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    min-width: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    margin-top: 2px;
+  }
+  .action-text { flex: 1; }
+  .action-text strong { display: block; font-size: 14px; }
+  .action-text span   { font-size: 13px; color: #4b5563; }
+
+  /* ── Callout boxes ── */
+  .callout {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    font-size: 13px;
+    display: flex;
+    gap: 10px;
+  }
+  .callout.tip    { background: #ecfdf5; border-left: 4px solid var(--green);  color: #065f46; }
+  .callout.warn   { background: #fffbeb; border-left: 4px solid var(--amber);  color: #92400e; }
+  .callout.info   { background: #eff6ff; border-left: 4px solid var(--blue);   color: #1e40af; }
+  .callout.key    { background: #faf5ff; border-left: 4px solid var(--purple); color: #581c87; }
+  .callout-icon   { font-size: 16px; min-width: 20px; }
+  .callout p      { margin: 0; }
+
+  /* ── Talk track ── */
+  .talk-track {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-top: 12px;
+    font-style: italic;
+    line-height: 1.7;
+  }
+  .talk-track::before {
+    content: '💬 Say: ';
+    font-style: normal;
+    font-weight: 700;
+    color: #93c5fd;
+  }
+
+  /* ── Code blocks ── */
+  code {
+    background: #1e293b;
+    color: #7dd3fc;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ── Q&A Section ── */
+  .qa-grid { display: grid; gap: 16px; }
+  .qa-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .qa-question {
+    background: var(--navy);
+    color: #fff;
+    padding: 12px 18px;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .qa-q-label {
+    background: #2563eb;
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 24px;
+    text-align: center;
+    margin-top: 2px;
+  }
+  .qa-answer {
+    padding: 14px 18px;
+    font-size: 13.5px;
+    color: var(--grey);
+    line-height: 1.7;
+  }
+  .qa-answer strong { color: #111827; }
+  .qa-answer ul { padding-left: 18px; margin-top: 6px; }
+  .qa-answer ul li { margin-bottom: 4px; }
+  .qa-tag {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .tag-arch   { background: #eff6ff; color: #1d4ed8; }
+  .tag-sec    { background: #fef2f2; color: #991b1b; }
+  .tag-scale  { background: #f0fdf4; color: #166534; }
+  .tag-design { background: #faf5ff; color: #6b21a8; }
+  .tag-ops    { background: #fffbeb; color: #92400e; }
+
+  /* ── Timing summary bar ── */
+  .timing-bar {
+    display: flex;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 36px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+  }
+  .timing-seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    padding: 0 8px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* ── Prep checklist ── */
+  .checklist { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .checklist li {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .checklist li::before { content: '☐'; font-size: 18px; color: var(--blue); }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 12px;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media print {
+    body { background: white; font-size: 13px; }
+    main { padding: 0 10px; }
+    header { padding: 20px; }
+    .step-body { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Currency Exchange Service — Architect Program Demo Guide</h1>
+  <p>Presentation playbook · 10-minute demo + 5-minute Q&A</p>
+  <div class="badges">
+    <span class="badge">Spring Boot 3.3 · Java 21</span>
+    <span class="badge">Angular 18</span>
+    <span class="badge">PostgreSQL · Redis</span>
+    <span class="badge">AWS Elastic Beanstalk</span>
+    <span class="badge">JWT RS256 · MFA</span>
+    <span class="badge">Resilience4j</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Overview ── -->
+  <div class="overview" style="margin-top:28px;">
+    <div class="stat-card">
+      <div class="num">10</div>
+      <div class="lbl">Demo Minutes</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">5</div>
+      <div class="lbl">Q&amp;A Minutes</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">7</div>
+      <div class="lbl">Demo Segments</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">15</div>
+      <div class="lbl">Q&amp;A Topics</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">5</div>
+      <div class="lbl">Arch Layers</div>
+    </div>
+  </div>
+
+  <!-- ── Before you start ── -->
+  <div class="section-title"><span class="icon">✅</span> Pre-Demo Checklist — Do These Before Walking In</div>
+
+  <ul class="checklist">
+    <li>Backend JAR deployed and running on EB, health check green</li>
+    <li>Angular app loaded in browser, no console errors</li>
+    <li>Two browser tabs open: one for regular user, one for admin user</li>
+    <li>Admin account pre-created in DB with <code>role = ADMIN</code></li>
+    <li>A test user account ready to register (or pre-registered)</li>
+    <li>Approval threshold confirmed at $100 in settings</li>
+    <li>CloudWatch Logs tab open in a third browser tab</li>
+    <li>Network tab in DevTools closed — avoid distraction</li>
+    <li>Postman/Swagger open as fallback if UI has issues</li>
+    <li>At least one pending transaction cleared from previous runs</li>
+  </ul>
+
+  <!-- ── Timing bar ── -->
+  <div class="section-title" style="margin-top:36px;"><span class="icon">⏱</span> 10-Minute Timing Overview</div>
+
+  <div class="timing-bar">
+    <div class="timing-seg" style="background:#1e3a5f; width:9%;">Intro<br>1m</div>
+    <div class="timing-seg" style="background:#1a56db; width:18%;">MFA Login<br>1m 45s</div>
+    <div class="timing-seg" style="background:#057a55; width:14%;">Conversion<br>1m 30s</div>
+    <div class="timing-seg" style="background:#b45309; width:16%;">Approval<br>1m 45s</div>
+    <div class="timing-seg" style="background:#6b21a8; width:20%;">Admin Workflow<br>2m</div>
+    <div class="timing-seg" style="background:#1d4ed8; width:12%;">Resilience<br>1m 15s</div>
+    <div class="timing-seg" style="background:#374151; width:11%;">Close<br>45s</div>
+  </div>
+
+  <!-- ── Demo Steps ── -->
+  <div class="section-title"><span class="icon">🎬</span> Demo Script — Step by Step</div>
+
+  <div class="timeline">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="timer">0:00–1:00</span>
+        <div>
+          <div class="step-title">1. Architecture Overview — Set the Stage</div>
+          <div class="step-sub">1 minute · No clicks needed · Verbal only</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="talk-track">
+          "This is a real-time currency exchange service I built end-to-end — Spring Boot on the backend, Angular on the frontend, deployed on AWS Elastic Beanstalk with PostgreSQL and Redis. The three things I want you to notice today are: mandatory MFA on every login, a threshold-based approval workflow for high-value conversions, and a cache-aside pattern with circuit breaker resilience for the live exchange rates."
+        </div>
+        <div class="callout tip" style="margin-top:12px;">
+          <span class="callout-icon">💡</span>
+          <p><strong>Tip:</strong> Keep this under 60 seconds. Panels want to see the app working, not a slide deck. Just name the three headline features and move.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="timer green">1:00–2:45</span>
+        <div>
+          <div class="step-title">2. User Registration &amp; MFA Login</div>
+          <div class="step-sub">1 min 45 s · Demonstrates security architecture</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <ul class="actions">
+          <li>
+            <span class="action-num">1</span>
+            <div class="action-text">
+              <strong>Register a new user</strong>
+              <span>Fill username, email, password. Submit. Show the 201 Created response with the user profile — no token yet.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">2</span>
+            <div class="action-text">
+              <strong>Login with credentials</strong>
+              <span>Submit email + password. Point out the response is <code>202 Accepted</code> with no token. Say: "The server verified the password but hasn't issued a token yet — it sent a 6-digit OTP to the registered email."</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">3</span>
+            <div class="action-text">
+              <strong>Show the OTP email (or console log)</strong>
+              <span>Open the email or show the local dev console log where the OTP is printed. This is the second factor.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">4</span>
+            <div class="action-text">
+              <strong>Submit OTP — get the JWT</strong>
+              <span>Enter the OTP. Show the <code>200 OK</code> with <code>accessToken</code>, <code>tokenType: Bearer</code>, <code>expiresIn: 900000</code> (15 min), and <code>role: USER</code>. Mention the refresh token is in an HttpOnly cookie — not visible in the response body.</span>
+            </div>
+          </li>
+        </ul>
+        <div class="talk-track">
+          "Notice the login is a two-step process. Password verification happens first, and only after the OTP is confirmed does the server issue a JWT. The token is RS256-signed — asymmetric keys — so any downstream service can verify it with just the public key, without needing the private key."
+        </div>
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <p><strong>Watch out:</strong> OTP expires in 5 minutes. Have your email client open before you start this step. Don't fumble looking for the email.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="timer green">2:45–4:15</span>
+        <div>
+          <div class="step-title">3. Currency Conversion — Below Threshold (Auto-Approved)</div>
+          <div class="step-sub">1 min 30 s · Demonstrates cache-aside + rate fetching</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <ul class="actions">
+          <li>
+            <span class="action-num">1</span>
+            <div class="action-text">
+              <strong>Navigate to the conversion screen</strong>
+              <span>Set From: <code>USD</code>, To: <code>EUR</code>, Amount: <code>50</code>.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">2</span>
+            <div class="action-text">
+              <strong>Submit and show the result</strong>
+              <span>Point out <code>status: APPROVED</code>, the exact <code>rate</code> used, the <code>convertedAmount</code>, and the <code>transactionId</code> UUID. Also show <code>approvalThreshold: 100</code> in the response — the UI uses this to tell the user their limit.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">3</span>
+            <div class="action-text">
+              <strong>Run the same conversion again</strong>
+              <span>Show it returns almost instantly the second time. Explain: "First request fetched from the live API and stored in Redis. This one came from cache — 5-minute TTL."</span>
+            </div>
+          </li>
+        </ul>
+        <div class="talk-track">
+          "The rate lookup uses a cache-aside pattern. First call checks Redis, misses, goes to the external rate API through a circuit breaker, stores the result in Redis with a 5-minute TTL. Every subsequent call for USD/EUR in those 5 minutes is sub-millisecond from cache. If the primary API is down, Resilience4j automatically falls back to a secondary provider."
+        </div>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <p><strong>Architect talking point:</strong> The threshold comparison is done in USD equivalent. If someone converts GBP to JPY, the GBP amount is first converted to USD, then compared to the $100 threshold. This ensures currency-agnostic fairness.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="timer amber">4:15–6:00</span>
+        <div>
+          <div class="step-title">4. High-Value Conversion — Pending Approval Workflow</div>
+          <div class="step-sub">1 min 45 s · Key business feature — approval workflow</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <ul class="actions">
+          <li>
+            <span class="action-num">1</span>
+            <div class="action-text">
+              <strong>Submit a conversion above the threshold</strong>
+              <span>From: <code>USD</code>, To: <code>INR</code>, Amount: <code>500</code>. This is $500 — above the $100 threshold.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">2</span>
+            <div class="action-text">
+              <strong>Point out the status difference</strong>
+              <span>Show <code>status: PENDING_APPROVAL</code> instead of APPROVED. The transaction is saved but money hasn't moved.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">3</span>
+            <div class="action-text">
+              <strong>Show the admin email notification</strong>
+              <span>Open the admin email inbox (or console log). Show: "Transaction {id} from user@email.com for 500 USD → INR requires your approval."</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">4</span>
+            <div class="action-text">
+              <strong>Show the transaction in user history</strong>
+              <span>In the user's transaction list, the entry shows PENDING_APPROVAL with the transactionId they can track.</span>
+            </div>
+          </li>
+        </ul>
+        <div class="talk-track">
+          "Any conversion whose USD-equivalent value meets or exceeds the configured threshold — $100 by default, but admin-configurable at runtime — is held in PENDING_APPROVAL state. The system notifies the admin by email, and the user can see their transaction is pending. Nothing is auto-committed above the threshold. This is a risk control for high-value transactions."
+        </div>
+        <div class="callout key">
+          <span class="callout-icon">🏛️</span>
+          <p><strong>Architectural decision to highlight:</strong> The threshold is stored in the <code>app_settings</code> table, not in config files. Admins change it at runtime through the API — no redeploy needed. Takes effect on the very next conversion request.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="timer purple">6:00–8:00</span>
+        <div>
+          <div class="step-title">5. Admin: Dashboard, Approve &amp; Reject</div>
+          <div class="step-sub">2 minutes · Switch to admin browser tab</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <ul class="actions">
+          <li>
+            <span class="action-num">1</span>
+            <div class="action-text">
+              <strong>Switch to admin tab — already logged in as ADMIN</strong>
+              <span>Show the admin dashboard: total users, active users, total transactions, pending approvals count, top currencies. All live from DB queries — no hardcoded data.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">2</span>
+            <div class="action-text">
+              <strong>Navigate to Pending Approvals</strong>
+              <span>Show the transaction we just created — amount, currency pair, user email, date. This is <code>GET /api/admin/transactions/pending</code>.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">3</span>
+            <div class="action-text">
+              <strong>Approve the transaction</strong>
+              <span>Click approve. Show the response: <code>status: APPROVED</code>, <code>approvedBy: {adminId}</code>, <code>approvalDate</code>. Mention: "The user gets an email notification at this point — SES in production, console log in dev."</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">4</span>
+            <div class="action-text">
+              <strong>(Optional — if time allows) Show reject flow</strong>
+              <span>Create a second high-value conversion quickly, then reject it with a reason string. Show the rejection email.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">5</span>
+            <div class="action-text">
+              <strong>Show the audit log</strong>
+              <span>Navigate to <code>GET /api/admin/logs</code>. Show the entries for TRANSACTION_CREATED, TRANSACTION_APPROVED with userId, timestamp, and the JSON details field. This is the immutable audit trail in PostgreSQL.</span>
+            </div>
+          </li>
+        </ul>
+        <div class="talk-track">
+          "The admin has full visibility — every transaction across all users, pending approvals in one view, and a complete audit trail of every event in the system. The audit log is in PostgreSQL, separate from application logs, so it survives log rotation. Each entry carries the userId, event type, IP address, and a flexible JSON details field."
+        </div>
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <p><strong>Tip:</strong> Switch back to the user tab and refresh their transaction history. Show the status has changed to APPROVED in real time. This closes the loop visually for the panel.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="timer" style="background:var(--blue);">8:00–9:15</span>
+        <div>
+          <div class="step-title">6. Resilience &amp; Observability</div>
+          <div class="step-sub">1 min 15 s · Architecture depth — circuit breaker + structured logs</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <ul class="actions">
+          <li>
+            <span class="action-num">1</span>
+            <div class="action-text">
+              <strong>Show the circuit breaker configuration</strong>
+              <span>Open <code>application.yml</code> or mention verbally: "50% failure threshold over 10 calls, 30-second open wait, automatic fallback to Alpha Vantage. If both fail, the circuit opens and returns 503 — it does not silently return a stale rate."</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">2</span>
+            <div class="action-text">
+              <strong>Show CloudWatch logs (or local console)</strong>
+              <span>Open the pre-loaded CloudWatch Logs tab. Show a few log lines. Point out the <code>correlationId</code> field in every JSON event. Show a filter: filter by the correlationId from the $500 conversion — it pulls the entire request lifecycle in one query.</span>
+            </div>
+          </li>
+          <li>
+            <span class="action-num">3</span>
+            <div class="action-text">
+              <strong>Mention the performance monitoring aspect</strong>
+              <span>"There's an AOP aspect that logs execution time on every service method. Anything over 500ms triggers a WARN — so slow external API calls surface automatically without needing APM tooling."</span>
+            </div>
+          </li>
+        </ul>
+        <div class="talk-track">
+          "Every request gets a UUID correlation ID from the moment it enters the system — before it hits any filter or controller. That ID appears in every log line for the lifetime of that request. In CloudWatch, I can filter on one correlation ID and see the complete trace: authentication, rate lookup, conversion, audit log write — all connected."
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step">
+      <div class="step-header">
+        <span class="timer" style="background:var(--grey);">9:15–10:00</span>
+        <div>
+          <div class="step-title">7. Close — Production Path &amp; Key Decisions</div>
+          <div class="step-sub">45 seconds · Land the architectural narrative</div>
+        </div>
+      </div>
+      <div class="step-body">
+        <div class="talk-track">
+          "This POC runs on a single EB instance with a single-AZ RDS and Redis — intentionally lean for a proof of concept. The production path I've documented moves to ECS Fargate with Multi-AZ RDS, Redis primary-replica, WAF on CloudFront, and AWS Secrets Manager replacing all plaintext credentials. The application code doesn't change — only the infrastructure tier changes. That's why the architecture decisions I made — stateless JWT, cache-aside, async audit writes — all scale horizontally without modification."
+        </div>
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <p><strong>Close strong:</strong> End with the architecture principle, not a feature. Something like "stateless, resilient, and observable by design" lands better with an architect panel than listing what buttons you clicked.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end timeline -->
+
+  <!-- ── Q&A ── -->
+  <div class="section-title" style="margin-top:48px;"><span class="icon">🎯</span> Q&amp;A Preparation — 15 Likely Topics</div>
+
+  <div class="callout info" style="margin-bottom:20px;">
+    <span class="callout-icon">ℹ️</span>
+    <p>Panel questions will come from three angles: <strong>why did you choose X over Y</strong> (architecture decisions), <strong>what breaks if Z fails</strong> (failure modes), and <strong>how would you evolve this</strong> (scale / production). Prepare answers in that shape.</p>
+  </div>
+
+  <div class="qa-grid">
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q1</span>
+        Why JWT RS256 instead of the more common HS256?
+        <span class="qa-tag tag-sec">Security</span>
+      </div>
+      <div class="qa-answer">
+        <strong>Short answer:</strong> Asymmetric keys — only this service holds the private key; any other service can verify tokens with just the public key.<br><br>
+        HS256 uses a shared secret. Every service that needs to verify tokens must have that secret — which means the secret leaks as you add services. RS256 uses a key pair: the private key signs tokens (only this backend), the public key verifies them. You can distribute the public key freely. This is microservices-ready by design, and fits the CQRS/event-driven future-state where separate read services may need to verify caller identity without having the signing key.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q2</span>
+        What happens if Redis goes down?
+        <span class="qa-tag tag-sec">Security</span><span class="qa-tag tag-ops" style="margin-left:4px;">Ops</span>
+      </div>
+      <div class="qa-answer">
+        <strong>Three consequences, in order of severity:</strong>
+        <ul>
+          <li><strong>MFA breaks</strong> — OTP codes are stored in Redis with a 5-minute TTL. If Redis is down, verifying the OTP fails. Users mid-login cannot complete authentication.</li>
+          <li><strong>Token blacklist lost</strong> — Logged-out tokens are no longer blacklisted. Any attacker holding a stolen JWT can use it freely until its natural 15-minute expiry. This is a security regression.</li>
+          <li><strong>Rate cache gone</strong> — Every rate request hits the external API directly. The circuit breaker may open if the external API rate-limits us. Exchange rates still serve (from API), but latency spikes.</li>
+        </ul>
+        <strong>Production mitigation:</strong> Redis primary + replica with automatic ElastiCache failover (under 60 seconds). The replica holds a copy of all data, so OTPs and the blacklist survive a primary failure.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q3</span>
+        Why cache-aside instead of write-through caching for exchange rates?
+        <span class="qa-tag tag-arch">Architecture</span>
+      </div>
+      <div class="qa-answer">
+        <strong>Write-through requires you to own the write path.</strong> In write-through, every time you write data, you simultaneously update the cache. But exchange rates come from an external API — you do not control when they change. There is no write event you can intercept to update the cache. Cache-aside is the correct pattern when data originates externally: you populate the cache on demand, and let TTL expiry handle staleness. If you also have admin-set manual rates, cache eviction on those writes is handled by <code>@CacheEvict</code> — a targeted invalidation, not a full write-through.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q4</span>
+        How does the approval threshold work across different currencies?
+        <span class="qa-tag tag-design">Design</span>
+      </div>
+      <div class="qa-answer">
+        The threshold is defined in USD and all comparisons happen in USD equivalent. When a user converts GBP → JPY, the service first calls <code>getRate("GBP", "USD")</code> to get the GBP-to-USD rate, multiplies by the GBP amount to get the USD equivalent, then compares that against the threshold. Only if <code>fromCurrency</code> is already USD is this extra call skipped. This ensures currency-agnostic fairness — a £80 conversion and a $100 conversion are treated identically regardless of the currency pair the user chose.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q5</span>
+        Why BCrypt cost factor 12 for passwords?
+        <span class="qa-tag tag-sec">Security</span>
+      </div>
+      <div class="qa-answer">
+        BCrypt's cost factor controls how many iterations the hashing algorithm runs. Cost 12 produces a hash in approximately 250ms on modern hardware. This is deliberate: it makes offline brute-force attacks expensive. An attacker with a GPU farm cracking a leaked hash database can only test ~4 guesses per second per GPU at cost 12, compared to millions of guesses per second for unsalted SHA-256. OWASP recommends cost 10–12. Cost 12 is slightly more conservative and still within acceptable login latency. As hardware gets faster, the cost can be increased — BCrypt's design allows this without invalidating existing hashes (existing passwords re-hash at login with the new cost).
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q6</span>
+        How would you scale this system to handle 10x traffic?
+        <span class="qa-tag tag-scale">Scale</span>
+      </div>
+      <div class="qa-answer">
+        The application is stateless by design — JWT tokens, OTPs, and the rate cache are all in Redis, not on the instance. Scaling horizontally means adding more ECS Fargate tasks behind an Application Load Balancer. Each task reads from the same Redis and writes to the same RDS — no sticky sessions needed.<br><br>
+        <strong>Bottlenecks at 10x:</strong>
+        <ul>
+          <li><strong>RDS connections</strong> — HikariCP pool per task (5 connections). At 20 tasks that's 100 connections — within RDS limits for db.t3.medium. Beyond that, add PgBouncer as a connection pooler.</li>
+          <li><strong>Redis memory</strong> — The rate cache is small (one key per currency pair). The OTP and blacklist data grows with user count. Upgrade to cache.r6g.large (13 GB) for headroom.</li>
+          <li><strong>External API rate limits</strong> — Add the background scheduler to pre-warm popular pairs, so concurrent traffic doesn't all hit the external API on cache miss simultaneously.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q7</span>
+        Explain the circuit breaker configuration and what triggers it.
+        <span class="qa-tag tag-arch">Architecture</span>
+      </div>
+      <div class="qa-answer">
+        Resilience4j is configured with: <strong>50% failure threshold</strong> over a sliding window of 10 calls, <strong>30-second open wait</strong>, <strong>3 permitted calls in half-open state</strong>. When the primary exchange rate API fails 5 out of 10 consecutive calls, the circuit opens. All subsequent calls immediately throw an <code>ExternalApiException</code> without touching the network — fast-fail. After 30 seconds, the circuit moves to half-open and allows 3 test calls. If those succeed, it closes; if they fail, it opens again.<br><br>
+        The fallback chain is: primary API → Alpha Vantage (secondary). The circuit breaker wraps only the primary call. If the primary is down, the fallback fires directly. If both are down, <code>ExternalApiException</code> propagates to the global handler which returns 503 with a user-friendly message — no stack trace leaked.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q8</span>
+        How do you prevent a logged-out JWT from being reused?
+        <span class="qa-tag tag-sec">Security</span>
+      </div>
+      <div class="qa-answer">
+        On logout, the access token is added to a Redis blacklist with a TTL equal to its remaining lifetime. On every authenticated request, <code>JwtAuthFilter</code> checks <code>TokenBlacklistService.isBlacklisted(token)</code> before doing anything else. If the token is blacklisted, the filter passes through without setting the security context — the request proceeds as unauthenticated and Spring Security returns 401.<br><br>
+        The TTL on the blacklist entry matches the token's natural expiry, so Redis auto-cleans entries. There is no growing blacklist — it self-prunes. The attack window if Redis is down is at most 15 minutes (access token TTL), after which the token expires naturally.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q9</span>
+        Why Elastic Beanstalk for this POC instead of ECS or Lambda?
+        <span class="qa-tag tag-ops">Ops</span>
+      </div>
+      <div class="qa-answer">
+        <strong>EB vs ECS:</strong> EB abstracts EC2 management — no Dockerfile, no task definitions, no ECS cluster configuration. For a POC where the goal is demonstrating application functionality, EB lets you deploy a JAR in minutes. ECS Fargate is the right production target (as documented) but adds 2–3 hours of setup for container registry, task definitions, service configuration, and ALB wiring that adds no POC value.<br><br>
+        <strong>EB vs Lambda:</strong> Spring Boot's startup time (2–4 seconds) makes Lambda cold starts painful for a stateful, session-oriented app. Lambda also has a 15-minute execution limit and no persistent connections — HikariCP and Redis pooling both break in a Lambda model. Spring Boot's design is aligned with long-running processes, not function invocations.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q10</span>
+        Why is the refresh token in an HttpOnly cookie instead of the response body?
+        <span class="qa-tag tag-sec">Security</span>
+      </div>
+      <div class="qa-answer">
+        An HttpOnly cookie is inaccessible to JavaScript — <code>document.cookie</code> cannot read it, so an XSS attack that injects malicious JavaScript into the page cannot steal the refresh token. If the refresh token were in the response body and stored in <code>localStorage</code> or even a regular cookie, any successful XSS would allow an attacker to silently rotate tokens indefinitely, maintaining persistent access long after the user has logged out.<br><br>
+        The access token (15-minute lifetime, in the response body) has limited XSS exposure — even if stolen, it expires quickly. The refresh token (7-day lifetime) is the higher-value target, so it gets the stronger protection. The cookie is also scoped to <code>Path=/api/auth</code> — it is only sent on auth endpoints, not on every API call, minimising its surface area further.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q11</span>
+        What is the biggest risk of this POC architecture in production?
+        <span class="qa-tag tag-ops">Ops</span>
+      </div>
+      <div class="qa-answer">
+        <strong>Single points of failure everywhere:</strong>
+        <ul>
+          <li><strong>Single EC2 instance</strong> — hardware failure or AZ outage takes the entire app offline. No standby, no failover.</li>
+          <li><strong>Single Redis node</strong> — as discussed: MFA breaks, blacklist lost, cache cold.</li>
+          <li><strong>Single-AZ RDS</strong> — if the AZ goes down, transaction data is unreachable. The financial records of a real system cannot be in a single-AZ database.</li>
+          <li><strong>Plaintext credentials in EB env vars</strong> — if someone gains access to the EB console, they see the DB password, JWT private key, and SES credentials in plaintext.</li>
+        </ul>
+        The documented production path addresses all four with ECS Fargate Multi-AZ, Redis primary+replica, RDS Multi-AZ, and AWS Secrets Manager respectively.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q12</span>
+        Why is the exchange rate refresh demand-driven and not on a schedule?
+        <span class="qa-tag tag-design">Design</span>
+      </div>
+      <div class="qa-answer">
+        Five reasons the background scheduler was excluded from the POC:
+        <ul>
+          <li><strong>No cold-start problem at POC scale</strong> — 1–2 demo users never hit the same expired pair concurrently.</li>
+          <li><strong>API quota cost</strong> — Free-tier APIs have call limits. A scheduler refreshing 10 pairs every 4 minutes burns ~3,600 calls/day whether the app is used or not.</li>
+          <li><strong>No usage data for pair selection</strong> — The scheduler needs to know which pairs are worth pre-warming. That comes from historical transaction volume, which doesn't exist for a new system.</li>
+          <li><strong>Startup thundering herd complexity</strong> — Correct implementation requires staggered delays on startup to avoid hammering the external API simultaneously for all pairs.</li>
+          <li><strong>5-minute TTL satisfies the POC SLA</strong> — "Real-time" in a demo context means not hours old.</li>
+        </ul>
+        In production, the scheduler would read top-20 pairs from transaction history and pre-warm them before TTL expires.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q13</span>
+        How would you add event-driven architecture or CQRS to this system?
+        <span class="qa-tag tag-arch">Architecture</span><span class="qa-tag tag-scale" style="margin-left:4px;">Scale</span>
+      </div>
+      <div class="qa-answer">
+        The current system is a synchronous monolith — all operations are in-request. The natural evolution:
+        <ul>
+          <li><strong>Event sourcing for transactions</strong> — Instead of mutating status in place, publish events: <code>TransactionCreated</code>, <code>TransactionApproved</code>, <code>TransactionRejected</code> to SQS or EventBridge. The current <code>Log</code> entity is a primitive version of this already.</li>
+          <li><strong>CQRS for the admin dashboard</strong> — The dashboard currently runs 5 aggregation queries on the transactional DB. A separate read model (materialized view or a DynamoDB projection updated by events) serves the admin dashboard without competing with write traffic.</li>
+          <li><strong>Async email notifications</strong> — Currently SES is called synchronously in the transaction flow. Moving to SQS + a Lambda consumer decouples email delivery failure from transaction success.</li>
+        </ul>
+        The application boundaries are already clean — controllers delegate to services, services to repositories — so event publishing could be added at the service layer without restructuring.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q14</span>
+        How is RBAC enforced — what stops a regular user from calling admin APIs?
+        <span class="qa-tag tag-sec">Security</span>
+      </div>
+      <div class="qa-answer">
+        Two layers, both active:<br><br>
+        <strong>1. URL-level:</strong> <code>SecurityConfig</code> declares <code>.requestMatchers("/api/admin/**").hasRole("ADMIN")</code>. Spring Security evaluates this before the request reaches any controller. A USER-role JWT hitting <code>/api/admin/transactions</code> gets a 403 at the filter chain level — no controller code runs.<br><br>
+        <strong>2. Method-level:</strong> <code>@PreAuthorize("hasRole('ADMIN')")</code> on every admin controller method and on admin-only rate management endpoints. Even if someone bypassed the URL matcher, method security provides a second check. This is defence in depth — two independent enforcement points.<br><br>
+        The role is embedded in the JWT at issuance time (the <code>User.getAuthorities()</code> method returns <code>ROLE_USER</code> or <code>ROLE_ADMIN</code>) and is verified on every request by <code>JwtAuthFilter</code>.
+      </div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-question">
+        <span class="qa-q-label">Q15</span>
+        What would you do differently if you started this project again?
+        <span class="qa-tag tag-arch">Architecture</span>
+      </div>
+      <div class="qa-answer">
+        Three things:
+        <ul>
+          <li><strong>Add Micrometer custom metrics from day one.</strong> The current <code>/actuator/metrics</code> only exposes JVM defaults. Business counters for transactions created, MFA failures, circuit breaker opens, and threshold breaches would have made the observability story much stronger without significant extra effort.</li>
+          <li><strong>Use a proper JSON logging encoder from the start.</strong> The initial AWS logback pattern was a string that looked like JSON but was not valid JSON — special characters in log messages would have broken CloudWatch Insights parsing. Logback's built-in <code>JsonEncoder</code> was a one-line fix that should have been the first choice.</li>
+          <li><strong>Decouple email sending from the transaction flow with SQS.</strong> Currently, if SES is slow or unavailable, the entire conversion request hangs waiting for the email call to return. Making the email step asynchronous via a queue would make the conversion path faster and more resilient to email service issues.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- end qa-grid -->
+
+  <!-- ── Final tips ── -->
+  <div class="section-title" style="margin-top:40px;"><span class="icon">🧠</span> Presentation Tips</div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+    <div class="callout tip" style="margin:0;">
+      <span class="callout-icon">✅</span>
+      <div>
+        <p><strong>Do:</strong> Name the architectural decision behind every feature you show. Don't just click through the UI — say why you built it that way.</p>
+      </div>
+    </div>
+    <div class="callout warn" style="margin:0;">
+      <span class="callout-icon">🚫</span>
+      <div>
+        <p><strong>Don't:</strong> Apologise for what's not built. Proactively frame POC trade-offs as intentional decisions, not omissions.</p>
+      </div>
+    </div>
+    <div class="callout tip" style="margin:0;">
+      <span class="callout-icon">✅</span>
+      <div>
+        <p><strong>Do:</strong> If something breaks during demo, stay calm and explain what should have happened. Panels know live demos have gremlins — composure matters more than perfection.</p>
+      </div>
+    </div>
+    <div class="callout warn" style="margin:0;">
+      <span class="callout-icon">🚫</span>
+      <div>
+        <p><strong>Don't:</strong> Go over time. Practice the demo at least twice with a timer. Cut step 6 (resilience) if you're running long — it's the most skippable segment.</p>
+      </div>
+    </div>
+    <div class="callout info" style="margin:0;">
+      <span class="callout-icon">💡</span>
+      <div>
+        <p><strong>For Q&A:</strong> If you don't know the answer, say "I considered that but the time constraint led me to X — here's how I'd approach it properly." Never bluff.</p>
+      </div>
+    </div>
+    <div class="callout key" style="margin:0;">
+      <span class="callout-icon">🏛️</span>
+      <div>
+        <p><strong>Closing line to memorise:</strong> "The system is stateless, resilient by default, and observable at every layer — and the application code doesn't change between POC and production. Only the infrastructure tier scales up."</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Currency Exchange Service · Architect Program Submission · karthikeyan.manickasathasivam@cognizant.com
+  </footer>
+
+</main>
+</body>
+</html>

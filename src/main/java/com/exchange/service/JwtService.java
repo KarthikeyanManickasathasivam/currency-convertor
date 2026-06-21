@@ -17,6 +17,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * RS256 (asymmetric) JWT service. When {@code app.jwt.private-key} / {@code app.jwt.public-key}
+ * are absent (local dev), a fresh RSA-2048 key pair is auto-generated at startup — tokens issued
+ * in that mode are not portable across restarts.
+ */
 @Slf4j
 @Service
 public class JwtService {
@@ -65,6 +70,7 @@ public class JwtService {
         return buildToken(new HashMap<>(), user, expiration);
     }
 
+    // "type=refresh" claim lets isRefreshToken() reject these tokens when presented as access tokens
     public String generateRefreshToken(UserDetails user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "refresh");

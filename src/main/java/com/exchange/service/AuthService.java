@@ -54,6 +54,8 @@ public class AuthService {
         return toResponse(saved);
     }
 
+    // Returns null when MFA is required — the controller sends HTTP 202 Accepted and the
+    // client navigates to the OTP verification step. Only MFA-bypass accounts get a token here.
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));

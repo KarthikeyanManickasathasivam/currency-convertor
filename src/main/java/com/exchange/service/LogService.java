@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Fire-and-forget audit logging. All writes are {@code @Async} so a slow DB insert or
+ * write failure never blocks or rolls back the calling transaction.
+ */
 @Service
 @RequiredArgsConstructor
 public class LogService {
